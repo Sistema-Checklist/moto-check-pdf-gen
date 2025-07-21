@@ -2,95 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Design System para Micro SaaS de Checklist de Motos
+Cores inspiradas em oficinas mecânicas modernas e industriais
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cores Base */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
 
+    /* Azul Mecânico Principal - Cor característica de ferramentas profissionais */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 55%;
+
+    /* Cinza Industrial para Cards e Elementos Neutros */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Estados de Componentes - Industrial Theme */
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 215 25% 25%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 30% 96%;
+    --muted-foreground: 215 15% 50%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 30% 92%;
+    --accent-foreground: 215 25% 25%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Vermelho para Estados Críticos - "Necessita Troca" */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Laranja para Estados de Atenção - "Regular" */
+    --warning: 25 95% 55%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Verde para Estados Aprovados - "Bom" */
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 100%;
 
+    /* Bordas e Campos */
+    --border: 215 20% 88%;
+    --input: 215 20% 90%;
+    --ring: 217 91% 60%;
+
+    /* Raio de Bordas - Moderno mas não muito arredondado */
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Cores de Status para Checklist */
+    --status-good: 120 60% 50%;
+    --status-regular: 25 95% 55%;
+    --status-needs-replacement: 0 85% 60%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Gradientes para elementos especiais */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 30% 98%));
+    
+    /* Sombras industriais */
+    --shadow-card: 0 2px 8px -2px hsl(215 25% 15% / 0.1);
+    --shadow-button: 0 1px 3px hsl(215 25% 15% / 0.2);
+    --shadow-focus: 0 0 0 3px hsl(217 91% 60% / 0.3);
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 215 25% 15%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 20%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 215 25% 25%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 215 25% 15%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 215 25% 18%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 215 25% 18%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 215 25% 22%;
+    --secondary-foreground: 0 0% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 25% 20%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 215 25% 22%;
+    --accent-foreground: 0 0% 85%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 215 25% 25%;
+    --input: 215 25% 22%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 215 25% 12%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 215 25% 18%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 215 25% 20%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -98,8 +123,42 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+}
+
+@layer components {
+  /* Botões de Status do Checklist */
+  .status-button {
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200 border-2;
+  }
+  
+  .status-button.good {
+    @apply bg-green-500 text-white border-green-500 hover:bg-green-600;
+  }
+  
+  .status-button.regular {
+    @apply bg-orange-500 text-white border-orange-500 hover:bg-orange-600;
+  }
+  
+  .status-button.needs-replacement {
+    @apply bg-red-500 text-white border-red-500 hover:bg-red-600;
+  }
+  
+  .status-button:not(.active) {
+    @apply bg-transparent text-muted-foreground border-border hover:bg-muted;
+  }
+
+  /* Cards do Checklist */
+  .checklist-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Seção de Fotos */
+  .photo-upload-area {
+    @apply border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors duration-200 cursor-pointer;
   }
 }
