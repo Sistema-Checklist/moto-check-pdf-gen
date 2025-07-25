@@ -82,7 +82,8 @@ export default function Login() {
             }]);
 
           if (createError) {
-            alert('Erro ao criar perfil: ' + createError.message);
+            console.error('Erro detalhado:', createError);
+            alert('Erro ao criar perfil: ' + (createError.message || createError.details || JSON.stringify(createError)));
           } else {
             alert('Perfil criado com sucesso!');
           }
@@ -178,6 +179,8 @@ export default function Login() {
         // Se é admin e não tem perfil, criar automaticamente
         if (data.user.email === 'kauankg@hotmail.com' && (!profile || error)) {
           console.log('Criando perfil admin para:', data.user.id);
+          console.log('Profile existe?', !!profile);
+          console.log('Profile error:', error);
           
           try {
             const { data: createData, error: createError } = await supabase
@@ -214,17 +217,18 @@ export default function Login() {
                     onConflict: 'user_id'
                   });
 
-                if (upsertError) {
-                  console.error('Erro no upsert:', upsertError);
-                  setError("Erro ao configurar perfil de administrador: " + upsertError.message);
-                  await supabase.auth.signOut();
-                  return;
-                }
-              } else {
-                setError("Erro ao configurar perfil de administrador: " + createError.message);
-                await supabase.auth.signOut();
-                return;
-              }
+                                 if (upsertError) {
+                   console.error('Erro no upsert:', upsertError);
+                   setError("Erro ao configurar perfil de administrador: " + (upsertError.message || upsertError.details || 'Erro desconhecido'));
+                   await supabase.auth.signOut();
+                   return;
+                 }
+                             } else {
+                 console.error('Detalhes do erro:', createError);
+                 setError("Erro ao configurar perfil de administrador: " + (createError.message || createError.details || 'Erro desconhecido'));
+                 await supabase.auth.signOut();
+                 return;
+               }
             }
 
             console.log('Perfil admin criado/atualizado com sucesso!');
