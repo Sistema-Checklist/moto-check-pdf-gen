@@ -183,6 +183,7 @@ export default function Login() {
           console.log('Criando perfil admin para:', data.user.id);
           console.log('Profile existe?', !!profile);
           console.log('Profile error:', error);
+          console.log('User data:', data.user);
           
           try {
             const profileData = {
@@ -197,6 +198,14 @@ export default function Login() {
             };
             
             console.log('Tentando inserir dados do admin:', profileData);
+            
+            // Primeiro, vamos verificar se conseguimos acessar a tabela
+            const { data: testData, error: testError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .limit(1);
+            
+            console.log('Teste de acesso à tabela:', { testData, testError });
             
             const { data: createData, error: createError } = await supabase
               .from('user_profiles')
