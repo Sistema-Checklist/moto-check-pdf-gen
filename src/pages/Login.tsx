@@ -110,11 +110,35 @@ export default function Login() {
           .eq('user_id', data.user.id)
           .single();
 
-        // Se não há perfil ou há erro
-        if (error || !profile) {
+        // Se não há perfil ou há erro (exceto para admin)
+        if ((error || !profile) && data.user.email !== 'kauankg@hotmail.com') {
           setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
           await supabase.auth.signOut();
           return;
+        }
+
+        // Se é admin e não tem perfil, criar automaticamente
+        if (data.user.email === 'kauankg@hotmail.com' && (!profile || error)) {
+          const { error: createError } = await supabase
+            .from('user_profiles')
+            .upsert([{
+              user_id: data.user.id,
+              name: 'Admin Geral',
+              email: 'kauankg@hotmail.com',
+              phone: '(11) 99999-9999',
+              is_approved: true,
+              is_frozen: false,
+              created_at: new Date().toISOString(),
+            }], {
+              onConflict: 'email'
+            });
+
+          if (createError) {
+            console.error('Erro ao criar perfil admin:', createError);
+            setError("Erro ao configurar perfil de administrador.");
+            await supabase.auth.signOut();
+            return;
+          }
         }
 
         // Verificar se o usuário está aprovado (exceto admin)
@@ -287,18 +311,7 @@ export default function Login() {
                   {loading ? "Entrando..." : "Entrar"}
                 </Button>
 
-                {loginForm.email === 'kauankg@hotmail.com' && (
-                  <div className="text-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => navigate('/admin-setup')}
-                      className="text-sm"
-                    >
-                      Configurar Admin Geral
-                    </Button>
-                  </div>
-                )}
+
               </form>
             </TabsContent>
 

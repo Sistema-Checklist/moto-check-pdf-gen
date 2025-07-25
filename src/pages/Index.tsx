@@ -168,12 +168,36 @@ export default function Index() {
       .eq('user_id', user.id)
       .single();
 
-    // Se não há perfil ou há erro, redirecionar para login
-    if (error || !profile) {
+    // Se não há perfil ou há erro (exceto para admin)
+    if ((error || !profile) && user.email !== 'kauankg@hotmail.com') {
       console.log('Usuário sem perfil encontrado, redirecionando para login');
       await supabase.auth.signOut();
       navigate('/login');
       return;
+    }
+
+    // Se é admin e não tem perfil, criar automaticamente
+    if (user.email === 'kauankg@hotmail.com' && (!profile || error)) {
+      const { error: createError } = await supabase
+        .from('user_profiles')
+        .upsert([{
+          user_id: user.id,
+          name: 'Admin Geral',
+          email: 'kauankg@hotmail.com',
+          phone: '(11) 99999-9999',
+          is_approved: true,
+          is_frozen: false,
+          created_at: new Date().toISOString(),
+        }], {
+          onConflict: 'email'
+        });
+
+      if (createError) {
+        console.error('Erro ao criar perfil admin:', createError);
+        await supabase.auth.signOut();
+        navigate('/login');
+        return;
+      }
     }
 
     // Verificar se o usuário está aprovado (exceto admin)
