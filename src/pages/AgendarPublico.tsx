@@ -107,7 +107,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-violet-50">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <div className="text-2xl font-bold text-violet-700 mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendar Manutenção da Moto</div>
+        <div className="text-2xl font-bold text-violet-700 mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendamento de manutenção</div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="nome">Seu Nome Completo <span className="text-red-500">*</span></Label>

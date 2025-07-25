@@ -51,6 +51,7 @@ export default function AdminPanel() {
 
   const fetchUsers = async () => {
     try {
+      console.log('Buscando usuários...');
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -61,6 +62,7 @@ export default function AdminPanel() {
         return;
       }
 
+      console.log('Usuários encontrados:', data);
       setUsers(data || []);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
@@ -153,6 +155,62 @@ export default function AdminPanel() {
     setWhatsappValue("");
   };
 
+  const handleRefreshUsers = async () => {
+    console.log('Forçando atualização da lista de usuários...');
+    await fetchUsers();
+  };
+
+  const handleCheckMissingUsers = async () => {
+    try {
+      console.log('Verificando usuários ausentes...');
+      // Buscar todos os usuários da tabela auth
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Erro ao buscar usuários auth:', authError);
+        return;
+      }
+
+      console.log('Usuários na tabela auth:', authUsers.users);
+
+      // Verificar quais não estão na tabela user_profiles
+      for (const authUser of authUsers.users) {
+        const { data: profileExists } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', authUser.id)
+          .single();
+
+        if (!profileExists) {
+          console.log('Usuário sem perfil encontrado:', authUser.email);
+          // Criar perfil automaticamente
+          const { error: insertError } = await supabase
+            .from('user_profiles')
+            .insert([{
+              user_id: authUser.id,
+              name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
+              email: authUser.email,
+              phone: authUser.phone || '',
+              whatsapp: '',
+              is_approved: false,
+              is_frozen: false
+            }]);
+
+          if (insertError) {
+            console.error('Erro ao criar perfil:', insertError);
+          } else {
+            console.log('Perfil criado para:', authUser.email);
+          }
+        }
+      }
+
+      // Recarregar a lista
+      await fetchUsers();
+    } catch (error) {
+      console.error('Erro ao verificar usuários ausentes:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -224,8 +282,8 @@ export default function AdminPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Search */}
-            <div className="mb-6">
+            {/* Search and Actions */}
+            <div className="mb-6 space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -234,6 +292,24 @@ export default function AdminPanel() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleRefreshUsers}
+                  className="flex items-center space-x-2"
+                >
+                  <Search className="h-4 w-4" />
+                  <span>Atualizar Lista</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCheckMissingUsers}
+                  className="flex items-center space-x-2"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Verificar Usuários Ausentes</span>
+                </Button>
               </div>
             </div>
 
