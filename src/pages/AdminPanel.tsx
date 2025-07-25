@@ -1,0 +1,321 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Users, CheckCircle, XCircle, Snowflake, Search, LogOut, UserCheck, UserX } from "lucide-react";
+
+interface UserProfile {
+  id: number;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  is_approved: boolean;
+  is_frozen: boolean;
+  created_at: string;
+}
+
+export default function AdminPanel() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    checkAdminAccess();
+    fetchUsers();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Verificar se é o admin geral
+    if (user.email !== 'kauankg@hotmail.com') {
+      navigate('/');
+      return;
+    }
+
+    setCurrentUser(user);
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao buscar usuários:', error);
+        return;
+      }
+
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_approved: true })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Erro ao aprovar usuário:', error);
+        return;
+      }
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Erro ao aprovar usuário:', error);
+    }
+  };
+
+  const handleFreezeUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_frozen: true })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Erro ao congelar usuário:', error);
+        return;
+      }
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Erro ao congelar usuário:', error);
+    }
+  };
+
+  const handleUnfreezeUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_frozen: false })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Erro ao descongelar usuário:', error);
+        return;
+      }
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Erro ao descongelar usuário:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phone.includes(searchTerm)
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <Users className="h-8 w-8 text-violet-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Painel de Administração</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Admin: {currentUser?.email}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sair</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Users className="h-6 w-6" />
+              <span>Controle de Usuários</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Search */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nome, email ou telefone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Users List */}
+            <div className="space-y-4">
+              {filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum usuário encontrado.
+                </div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="bg-white border rounded-lg p-4 flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="h-10 w-10 bg-violet-100 rounded-full flex items-center justify-center">
+                            <span className="text-violet-600 font-semibold">
+                              {user.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {user.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <p className="text-sm text-gray-500">{user.phone}</p>
+                          <p className="text-xs text-gray-400">
+                            Criado em: {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {/* Status Indicators */}
+                      <div className="flex items-center space-x-2">
+                        {user.is_approved ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Aprovado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Pendente
+                          </span>
+                        )}
+
+                        {user.is_frozen && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <Snowflake className="h-3 w-3 mr-1" />
+                            Congelado
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center space-x-2">
+                        {!user.is_approved && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveUser(user.user_id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                        )}
+
+                        {user.is_approved && !user.is_frozen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFreezeUser(user.user_id)}
+                            className="border-red-300 text-red-700 hover:bg-red-50"
+                          >
+                            <Snowflake className="h-4 w-4 mr-1" />
+                            Congelar
+                          </Button>
+                        )}
+
+                        {user.is_frozen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUnfreezeUser(user.user_id)}
+                            className="border-green-300 text-green-700 hover:bg-green-50"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Descongelar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Statistics */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {users.length}
+                </div>
+                <div className="text-sm text-blue-600">Total de Usuários</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {users.filter(u => u.is_approved && !u.is_frozen).length}
+                </div>
+                <div className="text-sm text-green-600">Usuários Ativos</div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {users.filter(u => !u.is_approved).length}
+                </div>
+                <div className="text-sm text-yellow-600">Aguardando Aprovação</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+} 

@@ -6,15 +6,82 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
+export interface Database {
   public: {
     Tables: {
-      [_ in never]: never
+      agendamentos: {
+        Row: {
+          id: number
+          nome: string
+          telefone: string
+          placa: string
+          tipo: string
+          data: string
+          horario: string
+          obs: string
+          status: string
+          locatario_rg: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          nome: string
+          telefone: string
+          placa: string
+          tipo: string
+          data: string
+          horario: string
+          obs: string
+          status?: string
+          locatario_rg: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          nome?: string
+          telefone?: string
+          placa?: string
+          tipo?: string
+          data?: string
+          horario?: string
+          obs?: string
+          status?: string
+          locatario_rg?: string
+          created_at?: string
+        }
+      }
+      user_profiles: {
+        Row: {
+          id: number
+          user_id: string
+          name: string
+          email: string
+          phone: string
+          is_approved: boolean
+          is_frozen: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          name: string
+          email: string
+          phone: string
+          is_approved?: boolean
+          is_frozen?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          name?: string
+          email?: string
+          phone?: string
+          is_approved?: boolean
+          is_frozen?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,9 +90,6 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
       [_ in never]: never
     }
   }
@@ -129,23 +193,6 @@ export type Enums<
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
