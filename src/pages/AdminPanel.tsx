@@ -183,7 +183,7 @@ export default function AdminPanel() {
 
         if (!profileExists) {
           console.log('Usuário sem perfil encontrado:', authUser.email);
-          // Criar perfil automaticamente
+          // Criar perfil automaticamente (NUNCA aprovado automaticamente)
           const { error: insertError } = await supabase
             .from('user_profiles')
             .insert([{
@@ -192,7 +192,7 @@ export default function AdminPanel() {
               email: authUser.email,
               phone: authUser.phone || '',
               whatsapp: '',
-              is_approved: false,
+              is_approved: authUser.email === 'kauankg@hotmail.com', // Apenas admin é aprovado automaticamente
               is_frozen: false
             }]);
 

@@ -68,26 +68,28 @@ export default function Login() {
               });
 
               if (!retryError && retryData.user) {
-                // Criar/atualizar perfil do admin se não existir
-                const { error: profileError } = await supabase
-                  .from('user_profiles')
-                  .upsert([
-                    {
-                      user_id: retryData.user.id,
-                      name: 'Admin Geral',
-                      email: 'kauankg@hotmail.com',
-                      phone: '(11) 99999-9999',
-                      is_approved: true,
-                      is_frozen: false,
-                      created_at: new Date().toISOString(),
-                    }
-                  ], {
-                    onConflict: 'email'
-                  });
+                // Criar/atualizar perfil do admin se não existir (APENAS para o admin)
+                if (retryData.user.email === 'kauankg@hotmail.com') {
+                  const { error: profileError } = await supabase
+                    .from('user_profiles')
+                    .upsert([
+                      {
+                        user_id: retryData.user.id,
+                        name: 'Admin Geral',
+                        email: 'kauankg@hotmail.com',
+                        phone: '(11) 99999-9999',
+                        is_approved: true,
+                        is_frozen: false,
+                        created_at: new Date().toISOString(),
+                      }
+                    ], {
+                      onConflict: 'email'
+                    });
 
-                if (!profileError) {
-                  navigate('/');
-                  return;
+                  if (!profileError) {
+                    navigate('/');
+                    return;
+                  }
                 }
               }
             }
@@ -102,19 +104,28 @@ export default function Login() {
 
       if (data.user) {
         // Verificar se o usuário está aprovado
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', data.user.id)
           .single();
 
-        if (profile && !profile.is_approved) {
+        // Se não há perfil ou há erro
+        if (error || !profile) {
+          setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // Verificar se o usuário está aprovado (exceto admin)
+        if (data.user.email !== 'kauankg@hotmail.com' && !profile.is_approved) {
           setError("Sua conta ainda não foi aprovada pelo administrador.");
           await supabase.auth.signOut();
           return;
         }
 
-        if (profile && profile.is_frozen) {
+        // Verificar se o usuário está congelado
+        if (profile.is_frozen) {
           setError("Sua conta foi congelada. Entre em contato com o administrador.");
           await supabase.auth.signOut();
           return;

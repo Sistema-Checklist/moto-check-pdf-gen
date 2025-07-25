@@ -162,18 +162,32 @@ export default function Index() {
     }
 
     // Verificar se o usuário está aprovado
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (profile && !profile.is_approved) {
+    // Se não há perfil ou há erro, redirecionar para login
+    if (error || !profile) {
+      console.log('Usuário sem perfil encontrado, redirecionando para login');
+      await supabase.auth.signOut();
       navigate('/login');
       return;
     }
 
-    if (profile && profile.is_frozen) {
+    // Verificar se o usuário está aprovado (exceto admin)
+    if (user.email !== 'kauankg@hotmail.com' && !profile.is_approved) {
+      console.log('Usuário não aprovado, redirecionando para login');
+      await supabase.auth.signOut();
+      navigate('/login');
+      return;
+    }
+
+    // Verificar se o usuário está congelado
+    if (profile.is_frozen) {
+      console.log('Usuário congelado, redirecionando para login');
+      await supabase.auth.signOut();
       navigate('/login');
       return;
     }
