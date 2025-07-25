@@ -111,7 +111,7 @@ export default function Index() {
     obs: "",
   });
   const [editMotoIdx, setEditMotoIdx] = useState<number | null>(null);
-  const [showPublicLink, setShowPublicLink] = useState(false);
+
   const [agendamentos, setAgendamentos] = useState([]);
   const [showAgendamentoForm, setShowAgendamentoForm] = useState(false);
   const [agendamentoForm, setAgendamentoForm] = useState({
@@ -126,7 +126,7 @@ export default function Index() {
   });
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroData, setFiltroData] = useState("");
-  const [publicLinkLocatario, setPublicLinkLocatario] = useState(null);
+
   const [vistoriadorSignature, setVistoriadorSignature] = useState("");
   const [locatarioSignature, setLocatarioSignature] = useState("");
   const [fotosGerais, setFotosGerais] = useState<string[]>([]);
@@ -150,7 +150,6 @@ export default function Index() {
       const loc = locatarios.find(l => l.rg === locRg);
       if (loc) {
         setAgendamentoForm(f => ({ ...f, nome: loc.nome }));
-        setShowPublicLink(true);
       }
     }
   }, [location.search, locatarios]);
@@ -324,7 +323,7 @@ export default function Index() {
       ...agendamentos,
       { ...agendamentoForm, status: "pendente" },
     ]);
-    setShowPublicLink(false);
+
     setShowAgendamentoForm(false);
     setAgendamentoForm({ nome: "", telefone: "", placa: "", tipo: "", data: "", horario: "", obs: "", status: "pendente" });
   }
@@ -332,8 +331,8 @@ export default function Index() {
   // Função para gerar link público único
   function handleGerarLinkPublico() {
     const url = `${window.location.origin}/agendar-publico`;
-    setPublicLinkLocatario(url);
-    setShowPublicLink(true);
+    // Abre uma nova aba/janela com o link público
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   const isFormValid = () => {
@@ -972,18 +971,7 @@ export default function Index() {
               </div>
             </CardContent>
           </Card>
-          {/* Modal de link público */}
-          {publicLinkLocatario && showPublicLink && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-              <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 relative">
-                <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => { setShowPublicLink(false); setPublicLinkLocatario(null); }}>&times;</button>
-                <div className="text-lg font-bold mb-2">Link Público de Agendamento</div>
-                <div className="mb-4 break-all bg-gray-100 rounded p-2 text-sm">{publicLinkLocatario}</div>
-                <Button className="w-full mb-2" onClick={() => { navigator.clipboard.writeText(publicLinkLocatario); }}>Copiar Link</Button>
-                <div className="text-xs text-gray-500">Compartilhe este link com seus clientes para que eles solicitem agendamentos.</div>
-              </div>
-            </div>
-          )}
+
           {/* Lista de agendamentos */}
           <Card className="mb-4">
             <CardContent className="py-4">
@@ -1029,10 +1017,10 @@ export default function Index() {
             </CardContent>
           </Card>
           {/* Modal/aba exclusiva para solicitação de agendamento (link público ou interno) */}
-          {(showPublicLink || showAgendamentoForm) && (
+          {showAgendamentoForm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
               <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 relative">
-                <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => { setShowPublicLink(false); setShowAgendamentoForm(false); }}>&times;</button>
+                <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => { setShowAgendamentoForm(false); }}>&times;</button>
                 <div className="text-2xl font-bold text-violet-700 mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendar Manutenção da Moto</div>
                 <form onSubmit={handleEnviarAgendamento} className="space-y-4">
                   <div>
