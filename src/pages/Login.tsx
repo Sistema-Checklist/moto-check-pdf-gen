@@ -82,8 +82,10 @@ export default function Login() {
             }]);
 
           if (createError) {
-            console.error('Erro detalhado:', createError);
-            alert('Erro ao criar perfil: ' + (createError.message || createError.details || JSON.stringify(createError)));
+                      console.error('Erro detalhado:', createError);
+          console.error('Erro como string:', JSON.stringify(createError, null, 2));
+          console.error('Erro como objeto:', Object.getOwnPropertyNames(createError));
+          alert('Erro ao criar perfil: ' + (createError?.message || createError?.details || JSON.stringify(createError, null, 2) || 'Erro desconhecido'));
           } else {
             alert('Perfil criado com sucesso!');
           }
@@ -183,18 +185,22 @@ export default function Login() {
           console.log('Profile error:', error);
           
           try {
+            const profileData = {
+              user_id: data.user.id,
+              name: 'Admin Geral',
+              email: 'kauankg@hotmail.com',
+              phone: '(11) 99999-9999',
+              whatsapp: '',
+              is_approved: true,
+              is_frozen: false,
+              created_at: new Date().toISOString(),
+            };
+            
+            console.log('Tentando inserir dados do admin:', profileData);
+            
             const { data: createData, error: createError } = await supabase
               .from('user_profiles')
-              .insert([{
-                user_id: data.user.id,
-                name: 'Admin Geral',
-                email: 'kauankg@hotmail.com',
-                phone: '(11) 99999-9999',
-                whatsapp: '',
-                is_approved: true,
-                is_frozen: false,
-                created_at: new Date().toISOString(),
-              }]);
+              .insert([profileData]);
 
             if (createError) {
               console.error('Erro ao criar perfil admin:', createError);
@@ -202,30 +208,27 @@ export default function Login() {
               // Se o erro for de conflito (perfil já existe), tentar upsert
               if (createError.code === '23505') {
                 console.log('Perfil já existe, tentando upsert...');
+                console.log('Tentando upsert do admin com dados:', profileData);
+                
                 const { error: upsertError } = await supabase
                   .from('user_profiles')
-                  .upsert([{
-                    user_id: data.user.id,
-                    name: 'Admin Geral',
-                    email: 'kauankg@hotmail.com',
-                    phone: '(11) 99999-9999',
-                    whatsapp: '',
-                    is_approved: true,
-                    is_frozen: false,
-                    created_at: new Date().toISOString(),
-                  }], {
+                  .upsert([profileData], {
                     onConflict: 'user_id'
                   });
 
                                  if (upsertError) {
                    console.error('Erro no upsert:', upsertError);
-                   setError("Erro ao configurar perfil de administrador: " + (upsertError.message || upsertError.details || 'Erro desconhecido'));
+                   console.error('Tipo do erro upsert:', typeof upsertError);
+                 console.error('Propriedades do erro upsert:', Object.keys(upsertError || {}));
+                 setError("Erro ao configurar perfil de administrador: " + (upsertError?.message || upsertError?.details || JSON.stringify(upsertError) || 'Erro desconhecido'));
                    await supabase.auth.signOut();
                    return;
                  }
                              } else {
                  console.error('Detalhes do erro:', createError);
-                 setError("Erro ao configurar perfil de administrador: " + (createError.message || createError.details || 'Erro desconhecido'));
+                 console.error('Tipo do erro:', typeof createError);
+                 console.error('Propriedades do erro:', Object.keys(createError || {}));
+                 setError("Erro ao configurar perfil de administrador: " + (createError?.message || createError?.details || JSON.stringify(createError) || 'Erro desconhecido'));
                  await supabase.auth.signOut();
                  return;
                }
