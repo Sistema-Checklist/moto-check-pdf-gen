@@ -178,32 +178,67 @@ export default function Index() {
 
     // Se é admin e não tem perfil, criar automaticamente
     if (user.email === 'kauankg@hotmail.com' && (!profile || error)) {
-      const { error: createError } = await supabase
-        .from('user_profiles')
-        .upsert([{
-          user_id: user.id,
-          name: 'Admin Geral',
-          email: 'kauankg@hotmail.com',
-          phone: '(11) 99999-9999',
-          whatsapp: '',
-          is_approved: true,
-          is_frozen: false,
-          created_at: new Date().toISOString(),
-        }], {
-          onConflict: 'email'
-        });
+      console.log('Criando perfil admin para:', user.id);
+      
+      try {
+        const { data: createData, error: createError } = await supabase
+          .from('user_profiles')
+          .insert([{
+            user_id: user.id,
+            name: 'Admin Geral',
+            email: 'kauankg@hotmail.com',
+            phone: '(11) 99999-9999',
+            whatsapp: '',
+            is_approved: true,
+            is_frozen: false,
+            created_at: new Date().toISOString(),
+          }]);
 
-      if (createError) {
-        console.error('Erro ao criar perfil admin:', createError);
+        if (createError) {
+          console.error('Erro ao criar perfil admin:', createError);
+          
+          // Se o erro for de conflito (perfil já existe), tentar upsert
+          if (createError.code === '23505') {
+            console.log('Perfil já existe, tentando upsert...');
+            const { error: upsertError } = await supabase
+              .from('user_profiles')
+              .upsert([{
+                user_id: user.id,
+                name: 'Admin Geral',
+                email: 'kauankg@hotmail.com',
+                phone: '(11) 99999-9999',
+                whatsapp: '',
+                is_approved: true,
+                is_frozen: false,
+                created_at: new Date().toISOString(),
+              }], {
+                onConflict: 'user_id'
+              });
+
+            if (upsertError) {
+              console.error('Erro no upsert:', upsertError);
+              await supabase.auth.signOut();
+              navigate('/login');
+              return;
+            }
+          } else {
+            await supabase.auth.signOut();
+            navigate('/login');
+            return;
+          }
+        }
+
+        console.log('Perfil admin criado/atualizado com sucesso!');
+        // Se criou o perfil com sucesso, continuar
+        setUser(user);
+        setLoading(false);
+        return;
+      } catch (catchError) {
+        console.error('Erro inesperado ao criar perfil admin:', catchError);
         await supabase.auth.signOut();
         navigate('/login');
         return;
       }
-
-      // Se criou o perfil com sucesso, continuar
-      setUser(user);
-      setLoading(false);
-      return;
     }
 
     // Se não é admin e não tem perfil, erro

@@ -40,6 +40,64 @@ export default function Login() {
     setError("");
   };
 
+  const handleTestAdmin = async () => {
+    try {
+      console.log('Testando login admin...');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'kauankg@hotmail.com',
+        password: 'Kauan134778@'
+      });
+
+      if (error) {
+        console.error('Erro no teste admin:', error);
+        alert('Erro no teste: ' + error.message);
+        return;
+      }
+
+      if (data.user) {
+        console.log('Login admin bem-sucedido:', data.user);
+        alert('Login admin funcionando! User ID: ' + data.user.id);
+        
+        // Verificar perfil
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          alert('Perfil não encontrado. Vamos criar...');
+          
+          const { error: createError } = await supabase
+            .from('user_profiles')
+            .insert([{
+              user_id: data.user.id,
+              name: 'Admin Geral',
+              email: 'kauankg@hotmail.com',
+              phone: '(11) 99999-9999',
+              whatsapp: '',
+              is_approved: true,
+              is_frozen: false,
+              created_at: new Date().toISOString(),
+            }]);
+
+          if (createError) {
+            alert('Erro ao criar perfil: ' + createError.message);
+          } else {
+            alert('Perfil criado com sucesso!');
+          }
+        } else {
+          alert('Perfil já existe: ' + JSON.stringify(profile));
+        }
+
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      console.error('Erro no teste:', error);
+      alert('Erro no teste: ' + error);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -119,31 +177,66 @@ export default function Login() {
 
         // Se é admin e não tem perfil, criar automaticamente
         if (data.user.email === 'kauankg@hotmail.com' && (!profile || error)) {
-          const { error: createError } = await supabase
-            .from('user_profiles')
-            .upsert([{
-              user_id: data.user.id,
-              name: 'Admin Geral',
-              email: 'kauankg@hotmail.com',
-              phone: '(11) 99999-9999',
-              whatsapp: '',
-              is_approved: true,
-              is_frozen: false,
-              created_at: new Date().toISOString(),
-            }], {
-              onConflict: 'email'
-            });
+          console.log('Criando perfil admin para:', data.user.id);
+          
+          try {
+            const { data: createData, error: createError } = await supabase
+              .from('user_profiles')
+              .insert([{
+                user_id: data.user.id,
+                name: 'Admin Geral',
+                email: 'kauankg@hotmail.com',
+                phone: '(11) 99999-9999',
+                whatsapp: '',
+                is_approved: true,
+                is_frozen: false,
+                created_at: new Date().toISOString(),
+              }]);
 
-          if (createError) {
-            console.error('Erro ao criar perfil admin:', createError);
-            setError("Erro ao configurar perfil de administrador.");
+            if (createError) {
+              console.error('Erro ao criar perfil admin:', createError);
+              
+              // Se o erro for de conflito (perfil já existe), tentar upsert
+              if (createError.code === '23505') {
+                console.log('Perfil já existe, tentando upsert...');
+                const { error: upsertError } = await supabase
+                  .from('user_profiles')
+                  .upsert([{
+                    user_id: data.user.id,
+                    name: 'Admin Geral',
+                    email: 'kauankg@hotmail.com',
+                    phone: '(11) 99999-9999',
+                    whatsapp: '',
+                    is_approved: true,
+                    is_frozen: false,
+                    created_at: new Date().toISOString(),
+                  }], {
+                    onConflict: 'user_id'
+                  });
+
+                if (upsertError) {
+                  console.error('Erro no upsert:', upsertError);
+                  setError("Erro ao configurar perfil de administrador: " + upsertError.message);
+                  await supabase.auth.signOut();
+                  return;
+                }
+              } else {
+                setError("Erro ao configurar perfil de administrador: " + createError.message);
+                await supabase.auth.signOut();
+                return;
+              }
+            }
+
+            console.log('Perfil admin criado/atualizado com sucesso!');
+            // Se criou o perfil com sucesso, navegar direto
+            navigate('/');
+            return;
+          } catch (catchError) {
+            console.error('Erro inesperado ao criar perfil admin:', catchError);
+            setError("Erro inesperado ao configurar perfil de administrador.");
             await supabase.auth.signOut();
             return;
           }
-
-          // Se criou o perfil com sucesso, navegar direto
-          navigate('/');
-          return;
         }
 
         // Se não é admin e não tem perfil, erro
@@ -322,6 +415,17 @@ export default function Login() {
                 >
                   {loading ? "Entrando..." : "Entrar"}
                 </Button>
+                
+                {loginForm.email === 'kauankg@hotmail.com' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestAdmin}
+                    className="w-full text-sm"
+                  >
+                    Testar Conta Admin
+                  </Button>
+                )}
 
 
               </form>
