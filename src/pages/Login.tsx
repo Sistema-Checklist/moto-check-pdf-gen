@@ -126,6 +126,7 @@ export default function Login() {
               name: 'Admin Geral',
               email: 'kauankg@hotmail.com',
               phone: '(11) 99999-9999',
+              whatsapp: '',
               is_approved: true,
               is_frozen: false,
               created_at: new Date().toISOString(),

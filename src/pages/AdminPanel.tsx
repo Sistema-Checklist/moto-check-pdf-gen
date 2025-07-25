@@ -211,6 +211,66 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSetupAdmin = async () => {
+    try {
+      console.log('Configurando conta admin...');
+      
+      // Tentar fazer login com as credenciais fornecidas
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: 'kauankg@hotmail.com',
+        password: 'Kauan134778@'
+      });
+
+      if (loginError) {
+        console.error('Erro ao fazer login admin:', loginError);
+        alert('Erro ao fazer login admin: ' + loginError.message);
+        return;
+      }
+
+      if (loginData.user) {
+        // Verificar se o perfil admin existe
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', loginData.user.id)
+          .single();
+
+        if (!profile || profileError) {
+          // Criar perfil admin
+          const { error: createError } = await supabase
+            .from('user_profiles')
+            .insert([{
+              user_id: loginData.user.id,
+              name: 'Admin Geral',
+              email: 'kauankg@hotmail.com',
+              phone: '(11) 99999-9999',
+              whatsapp: '',
+              is_approved: true,
+              is_frozen: false,
+              created_at: new Date().toISOString(),
+            }]);
+
+          if (createError) {
+            console.error('Erro ao criar perfil admin:', createError);
+            alert('Erro ao criar perfil admin: ' + createError.message);
+          } else {
+            console.log('Perfil admin criado com sucesso!');
+            alert('Conta admin configurada com sucesso!\nEmail: kauankg@hotmail.com\nSenha: Kauan134778@');
+          }
+        } else {
+          console.log('Perfil admin já existe!');
+          alert('Conta admin já está configurada!\nEmail: kauankg@hotmail.com\nSenha: Kauan134778@');
+        }
+
+        // Fazer logout
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      console.error('Erro ao configurar admin:', error);
+      alert('Erro ao configurar admin: ' + error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -309,6 +369,14 @@ export default function AdminPanel() {
                 >
                   <Users className="h-4 w-4" />
                   <span>Verificar Usuários Ausentes</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSetupAdmin}
+                  className="flex items-center space-x-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  <span>Configurar Conta Admin</span>
                 </Button>
               </div>
             </div>
