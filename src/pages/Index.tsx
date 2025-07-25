@@ -331,8 +331,14 @@ export default function Index() {
   // Função para gerar link público único
   function handleGerarLinkPublico() {
     const url = `${window.location.origin}/agendar-publico`;
-    // Abre uma nova aba/janela com o link público
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Copia o link para a área de transferência
+    navigator.clipboard.writeText(url).then(() => {
+      // Mostra uma mensagem de confirmação (opcional)
+      alert('Link copiado para a área de transferência!');
+    }).catch(err => {
+      console.error('Erro ao copiar link:', err);
+      alert('Erro ao copiar link. Tente novamente.');
+    });
   }
 
   const isFormValid = () => {
