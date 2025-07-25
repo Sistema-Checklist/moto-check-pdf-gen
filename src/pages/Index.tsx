@@ -198,6 +198,19 @@ export default function Index() {
         navigate('/login');
         return;
       }
+
+      // Se criou o perfil com sucesso, continuar
+      setUser(user);
+      setLoading(false);
+      return;
+    }
+
+    // Se não é admin e não tem perfil, erro
+    if (!profile) {
+      console.log('Usuário sem perfil encontrado, redirecionando para login');
+      await supabase.auth.signOut();
+      navigate('/login');
+      return;
     }
 
     // Verificar se o usuário está aprovado (exceto admin)

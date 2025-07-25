@@ -139,6 +139,17 @@ export default function Login() {
             await supabase.auth.signOut();
             return;
           }
+
+          // Se criou o perfil com sucesso, navegar direto
+          navigate('/');
+          return;
+        }
+
+        // Se não é admin e não tem perfil, erro
+        if (!profile) {
+          setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
+          await supabase.auth.signOut();
+          return;
         }
 
         // Verificar se o usuário está aprovado (exceto admin)
