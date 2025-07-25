@@ -41,6 +41,7 @@ export default function AgendarPublico() {
   async function handleSubmit(e) {
     e.preventDefault();
     setErro("");
+    
     // Enviar para Supabase
     const { error } = await supabase.from("agendamentos").insert([
       {
@@ -55,9 +56,39 @@ export default function AgendarPublico() {
         locatario_rg: "", // Link único para todos os clientes
       },
     ]);
+    
     if (error) {
       setErro("Erro ao enviar solicitação. Tente novamente.");
     } else {
+      // Buscar o WhatsApp do admin para redirecionar
+      const { data: adminData } = await supabase
+        .from('user_profiles')
+        .select('whatsapp')
+        .eq('email', 'kauankg@hotmail.com')
+        .single();
+      
+      if (adminData?.whatsapp) {
+        // Formatar mensagem para WhatsApp
+        const mensagem = `Olá! Recebi uma nova solicitação de agendamento:
+
+Nome: ${form.nome}
+Telefone: ${form.telefone}
+Placa: ${form.placa}
+Tipo: ${tipoManutencaoOptions.find(opt => opt.value === form.tipo)?.label}
+Data: ${form.data}
+Horário: ${form.horario}
+${form.obs ? `Observações: ${form.obs}` : ''}
+
+Por favor, entre em contato para confirmar o agendamento.`;
+
+        // Codificar a mensagem para URL
+        const mensagemCodificada = encodeURIComponent(mensagem);
+        const whatsappUrl = `https://wa.me/55${adminData.whatsapp}?text=${mensagemCodificada}`;
+        
+        // Abrir WhatsApp
+        window.open(whatsappUrl, '_blank');
+      }
+      
       setEnviado(true);
     }
   }

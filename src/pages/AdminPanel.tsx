@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Users, CheckCircle, XCircle, Snowflake, Search, LogOut, UserCheck, UserX } from "lucide-react";
+import { Users, CheckCircle, XCircle, Snowflake, Search, LogOut, UserCheck, UserX, ArrowLeft } from "lucide-react";
 
 interface UserProfile {
   id: number;
@@ -13,6 +13,7 @@ interface UserProfile {
   name: string;
   email: string;
   phone: string;
+  whatsapp: string;
   is_approved: boolean;
   is_frozen: boolean;
   created_at: string;
@@ -23,6 +24,8 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [editingWhatsapp, setEditingWhatsapp] = useState<string | null>(null);
+  const [whatsappValue, setWhatsappValue] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -120,9 +123,43 @@ export default function AdminPanel() {
     }
   };
 
+  const handleEditWhatsapp = (userId: string, currentWhatsapp: string) => {
+    setEditingWhatsapp(userId);
+    setWhatsappValue(currentWhatsapp || "");
+  };
+
+  const handleSaveWhatsapp = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ whatsapp: whatsappValue })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Erro ao salvar WhatsApp:', error);
+        return;
+      }
+
+      setEditingWhatsapp(null);
+      setWhatsappValue("");
+      fetchUsers();
+    } catch (error) {
+      console.error('Erro ao salvar WhatsApp:', error);
+    }
+  };
+
+  const handleCancelEditWhatsapp = () => {
+    setEditingWhatsapp(null);
+    setWhatsappValue("");
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  const handleVoltar = () => {
+    navigate('/');
   };
 
   const filteredUsers = users.filter(user =>
@@ -156,6 +193,14 @@ export default function AdminPanel() {
               <span className="text-sm text-gray-600">
                 Admin: {currentUser?.email}
               </span>
+              <Button
+                variant="outline"
+                onClick={handleVoltar}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Voltar</span>
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleLogout}
@@ -219,6 +264,45 @@ export default function AdminPanel() {
                           </h3>
                           <p className="text-sm text-gray-500">{user.email}</p>
                           <p className="text-sm text-gray-500">{user.phone}</p>
+                          {editingWhatsapp === user.user_id ? (
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Input
+                                value={whatsappValue}
+                                onChange={(e) => setWhatsappValue(e.target.value)}
+                                placeholder="WhatsApp (ex: 11999999999)"
+                                className="text-sm"
+                                size={20}
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveWhatsapp(user.user_id)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Salvar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancelEditWhatsapp}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 mt-2">
+                              <p className="text-sm text-gray-500">
+                                WhatsApp: {user.whatsapp || "Não configurado"}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditWhatsapp(user.user_id, user.whatsapp)}
+                                className="text-xs"
+                              >
+                                Editar
+                              </Button>
+                            </div>
+                          )}
                           <p className="text-xs text-gray-400">
                             Criado em: {new Date(user.created_at).toLocaleDateString('pt-BR')}
                           </p>
