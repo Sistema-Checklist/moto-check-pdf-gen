@@ -14,6 +14,8 @@ interface UserProfile {
   email: string;
   phone: string;
   whatsapp: string;
+  company_name: string;
+  company_logo: string;
   is_approved: boolean;
   is_frozen: boolean;
   created_at: string;
@@ -24,8 +26,15 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [editingWhatsapp, setEditingWhatsapp] = useState<string | null>(null);
-  const [whatsappValue, setWhatsappValue] = useState("");
+  const [editingCompany, setEditingCompany] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [companyLogo, setCompanyLogo] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [savingCompany, setSavingCompany] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -125,35 +134,7 @@ export default function AdminPanel() {
     }
   };
 
-  const handleEditWhatsapp = (userId: string, currentWhatsapp: string) => {
-    setEditingWhatsapp(userId);
-    setWhatsappValue(currentWhatsapp || "");
-  };
 
-  const handleSaveWhatsapp = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ whatsapp: whatsappValue })
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Erro ao salvar WhatsApp:', error);
-        return;
-      }
-
-      setEditingWhatsapp(null);
-      setWhatsappValue("");
-      fetchUsers();
-    } catch (error) {
-      console.error('Erro ao salvar WhatsApp:', error);
-    }
-  };
-
-  const handleCancelEditWhatsapp = () => {
-    setEditingWhatsapp(null);
-    setWhatsappValue("");
-  };
 
   const handleRefreshUsers = async () => {
     console.log('Forçando atualização da lista de usuários...');
@@ -191,7 +172,6 @@ export default function AdminPanel() {
               name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
               email: authUser.email,
               phone: authUser.phone || '',
-              whatsapp: '',
               is_approved: authUser.email === 'kauankg@hotmail.com', // Apenas admin é aprovado automaticamente
               is_frozen: false
             }]);
@@ -244,7 +224,6 @@ export default function AdminPanel() {
               name: 'Admin Geral',
               email: 'kauankg@hotmail.com',
               phone: '(11) 99999-9999',
-              whatsapp: '',
               is_approved: true,
               is_frozen: false,
               created_at: new Date().toISOString(),
@@ -280,6 +259,163 @@ export default function AdminPanel() {
     navigate('/');
   };
 
+  // Funções para gerenciar empresa
+  const handleEditCompany = (user: UserProfile) => {
+    setEditingCompany(user.user_id);
+    setCompanyName(user.company_name || '');
+    setCompanyLogo(user.company_logo || '');
+    setWhatsapp(user.whatsapp || '');
+  };
+
+  const handleSaveCompany = async (userId: string) => {
+    if (!companyName.trim()) {
+      setErrorMessage("Nome da empresa é obrigatório");
+      setShowErrorMessage(true);
+      setTimeout(() => setShowErrorMessage(false), 3000);
+      return;
+    }
+
+    setSavingCompany(true);
+    try {
+      // Verificar se os campos existem
+      const fieldsExist = await checkCompanyFields();
+      if (!fieldsExist) {
+        setErrorMessage("Campos de empresa não encontrados. Execute o script SQL primeiro.");
+        setShowErrorMessage(true);
+        setTimeout(() => setShowErrorMessage(false), 5000);
+        return;
+      }
+
+      console.log('Tentando salvar dados da empresa:', {
+        userId,
+        companyName: companyName.trim(),
+        hasLogo: !!companyLogo
+      });
+
+      // Tentar salvar apenas o nome primeiro
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ 
+          company_name: companyName.trim()
+        })
+        .eq('user_id', userId)
+        .select();
+
+      if (error) {
+        console.error('Erro ao salvar nome da empresa:', error);
+        setErrorMessage(`Erro ao salvar nome: ${error.message || error.details || 'Campo não encontrado'}`);
+        setShowErrorMessage(true);
+        setTimeout(() => setShowErrorMessage(false), 5000);
+        return;
+      }
+
+      // Se tem logo, salvar separadamente
+      if (companyLogo) {
+        const { error: logoError } = await supabase
+          .from('user_profiles')
+          .update({ company_logo: companyLogo })
+          .eq('user_id', userId);
+
+        if (logoError) {
+          console.error('Erro ao salvar logo:', logoError);
+          setErrorMessage(`Erro ao salvar logo: ${logoError.message || logoError.details}`);
+          setShowErrorMessage(true);
+          setTimeout(() => setShowErrorMessage(false), 5000);
+          return;
+        }
+      }
+
+      // Se tem WhatsApp, tentar salvar separadamente
+      if (whatsapp.trim()) {
+        try {
+          const { error: whatsappError } = await supabase
+            .from('user_profiles')
+            .update({ whatsapp: whatsapp.trim() })
+            .eq('user_id', userId);
+
+          if (whatsappError) {
+            console.error('Erro ao salvar WhatsApp:', whatsappError);
+            // Não mostrar erro para o usuário, apenas log
+          }
+        } catch (error) {
+          console.error('Erro ao tentar salvar WhatsApp:', error);
+          // Não mostrar erro para o usuário, apenas log
+        }
+      }
+
+      console.log('Dados salvos com sucesso:', data);
+      setEditingCompany(null);
+      setCompanyName("");
+      setCompanyLogo("");
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      fetchUsers();
+    } catch (error) {
+      console.error('Erro inesperado ao salvar dados da empresa:', error);
+      setErrorMessage(`Erro inesperado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      setShowErrorMessage(true);
+      setTimeout(() => setShowErrorMessage(false), 5000);
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  const handleCancelEditCompany = () => {
+    setEditingCompany(null);
+    setCompanyName("");
+    setCompanyLogo("");
+    setWhatsapp("");
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        setErrorMessage("Por favor, selecione apenas arquivos de imagem.");
+        setShowErrorMessage(true);
+        setTimeout(() => setShowErrorMessage(false), 3000);
+        return;
+      }
+
+      // Validar tamanho (máximo 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setErrorMessage("A imagem deve ter no máximo 2MB.");
+        setShowErrorMessage(true);
+        setTimeout(() => setShowErrorMessage(false), 3000);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setCompanyLogo(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Função para verificar se os campos de empresa existem
+  const checkCompanyFields = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('company_name, company_logo')
+        .limit(1);
+
+      if (error) {
+        console.error('Erro ao verificar campos de empresa:', error);
+        return false;
+      }
+
+      console.log('Campos de empresa verificados:', data);
+      return true;
+    } catch (error) {
+      console.error('Erro ao verificar campos de empresa:', error);
+      return false;
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -299,6 +435,20 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Pop-ups de Feedback */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+          <CheckCircle className="h-5 w-5" />
+          <span>Dados da empresa salvos com sucesso!</span>
+        </div>
+      )}
+      
+      {showErrorMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+          <XCircle className="h-5 w-5" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -408,48 +558,106 @@ export default function AdminPanel() {
                           </h3>
                           <p className="text-sm text-gray-500">{user.email}</p>
                           <p className="text-sm text-gray-500">{user.phone}</p>
-                          {editingWhatsapp === user.user_id ? (
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Input
-                                value={whatsappValue}
-                                onChange={(e) => setWhatsappValue(e.target.value)}
-                                placeholder="WhatsApp (ex: 11999999999)"
-                                className="text-sm"
-                                size={20}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => handleSaveWhatsapp(user.user_id)}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                Salvar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleCancelEditWhatsapp}
-                              >
-                                Cancelar
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2 mt-2">
-                              <p className="text-sm text-gray-500">
-                                WhatsApp: {user.whatsapp || "Não configurado"}
-                              </p>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditWhatsapp(user.user_id, user.whatsapp)}
-                                className="text-xs"
-                              >
-                                Editar
-                              </Button>
-                            </div>
-                          )}
                           <p className="text-xs text-gray-400">
                             Criado em: {new Date(user.created_at).toLocaleDateString('pt-BR')}
                           </p>
+                          
+                          {/* Informações da Empresa */}
+                          <div className="mt-2">
+                            {editingCompany === user.user_id ? (
+                              <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-700">Nome da Empresa</Label>
+                                  <Input
+                                    value={companyName}
+                                    onChange={(e) => setCompanyName(e.target.value)}
+                                    placeholder="Digite o nome da empresa"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-700">WhatsApp para Agendamentos</Label>
+                                  <Input
+                                    value={whatsapp}
+                                    onChange={(e) => setWhatsapp(e.target.value)}
+                                    placeholder="(XX) XXXXX-XXXX"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs font-medium text-gray-700">Logo da Empresa</Label>
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={handleLogoUpload}
+                                      className="text-sm"
+                                    />
+                                    {companyLogo && (
+                                      <img 
+                                        src={companyLogo} 
+                                        alt="Logo preview" 
+                                        className="w-8 h-8 rounded object-cover"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSaveCompany(user.user_id)}
+                                    disabled={savingCompany}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    {savingCompany ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                                        Salvando...
+                                      </>
+                                    ) : (
+                                      'Salvar'
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancelEditCompany}
+                                    disabled={savingCompany}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                {user.company_logo && (
+                                  <img 
+                                    src={user.company_logo} 
+                                    alt="Logo da empresa" 
+                                    className="w-6 h-6 rounded object-cover"
+                                  />
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-gray-600">
+                                    {user.company_name || 'Empresa não configurada'}
+                                  </span>
+                                  {user.whatsapp && (
+                                    <span className="text-xs text-gray-500">
+                                      WhatsApp: {user.whatsapp}
+                                    </span>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditCompany(user)}
+                                  className="text-xs"
+                                >
+                                  {user.company_name ? 'Editar' : 'Configurar'} Empresa
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

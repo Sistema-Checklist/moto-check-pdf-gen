@@ -40,65 +40,7 @@ export default function Login() {
     setError("");
   };
 
-  const handleTestAdmin = async () => {
-    try {
-      console.log('Testando login admin...');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'kauankg@hotmail.com',
-        password: 'Kauan134778@'
-      });
 
-      if (error) {
-        console.error('Erro no teste admin:', error);
-        alert('Erro no teste: ' + error.message);
-        return;
-      }
-
-      if (data.user) {
-        console.log('Login admin bem-sucedido:', data.user);
-        alert('Login admin funcionando! User ID: ' + data.user.id);
-        
-        // Verificar perfil
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          alert('Perfil não encontrado. Vamos criar...');
-          
-          const { error: createError } = await supabase
-            .from('user_profiles')
-            .insert([{
-              user_id: data.user.id,
-              name: 'Admin Geral',
-              email: 'kauankg@hotmail.com',
-              phone: '(11) 99999-9999',
-              is_approved: true,
-              is_frozen: false,
-              created_at: new Date().toISOString(),
-            }]);
-
-          if (createError) {
-                      console.error('Erro detalhado:', createError);
-          console.error('Erro como string:', JSON.stringify(createError, null, 2));
-          console.error('Erro como objeto:', Object.getOwnPropertyNames(createError));
-          alert('Erro ao criar perfil: ' + (createError?.message || createError?.details || JSON.stringify(createError, null, 2) || 'Erro desconhecido'));
-          } else {
-            alert('Perfil criado com sucesso!');
-          }
-        } else {
-          alert('Perfil já existe: ' + JSON.stringify(profile));
-        }
-
-        await supabase.auth.signOut();
-      }
-    } catch (error) {
-      console.error('Erro no teste:', error);
-      alert('Erro no teste: ' + error);
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,9 +300,10 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-violet-700">
-            Sistema de Checklist
+            CheckSystem
           </CardTitle>
-          <p className="text-gray-600">Faça login ou crie sua conta</p>
+          <p className="text-gray-600">Sistema eficiente para checklists de motos</p>
+          <p className="text-sm text-gray-500 mt-2">Faça login ou crie sua conta</p>
         </CardHeader>
         <CardContent>
           <Tabs value={isLogin ? "login" : "register"} onValueChange={(value) => setIsLogin(value === "login")}>
@@ -430,16 +373,7 @@ export default function Login() {
                   {loading ? "Entrando..." : "Entrar"}
                 </Button>
                 
-                {loginForm.email === 'kauankg@hotmail.com' && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleTestAdmin}
-                    className="w-full text-sm"
-                  >
-                    Testar Conta Admin
-                  </Button>
-                )}
+
 
 
               </form>

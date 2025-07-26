@@ -336,25 +336,27 @@ export default function PhotoCapture({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
           onClick={() => setIsCameraOpen(true)}
-          className="flex-1"
+          className="flex flex-col items-center justify-center h-20 bg-gradient-to-br from-violet-50 to-blue-50 border-2 border-dashed border-violet-200 hover:border-violet-300 hover:from-violet-100 hover:to-blue-100 transition-all duration-200"
           disabled={currentCount >= maxPhotos}
         >
-          <Camera className="h-4 w-4 mr-2" />
-          📸 Câmera ({currentCount}/{maxPhotos})
+          <Camera className="h-6 w-6 text-violet-600 mb-1" />
+          <span className="text-sm font-medium text-violet-700">Câmera</span>
+          <span className="text-xs text-violet-500">({currentCount}/{maxPhotos})</span>
         </Button>
         <Button
           variant="outline"
           onClick={selectFromGallery}
-          className="flex-1"
+          className="flex flex-col items-center justify-center h-20 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 hover:border-blue-300 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200"
           disabled={currentCount >= maxPhotos}
         >
-          <Image className="h-4 w-4 mr-2" />
-          📷 Galeria ({currentCount}/{maxPhotos})
+          <Image className="h-6 w-6 text-blue-600 mb-1" />
+          <span className="text-sm font-medium text-blue-700">Galeria</span>
+          <span className="text-xs text-blue-500">({currentCount}/{maxPhotos})</span>
         </Button>
       </div>
       <input

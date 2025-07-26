@@ -57,6 +57,9 @@ export interface Database {
           name: string
           email: string
           phone: string
+          whatsapp: string
+          company_name: string
+          company_logo: string
           is_approved: boolean
           is_frozen: boolean
           created_at: string
@@ -67,6 +70,9 @@ export interface Database {
           name: string
           email: string
           phone: string
+          whatsapp?: string
+          company_name?: string
+          company_logo?: string
           is_approved?: boolean
           is_frozen?: boolean
           created_at?: string
@@ -77,6 +83,9 @@ export interface Database {
           name?: string
           email?: string
           phone?: string
+          whatsapp?: string
+          company_name?: string
+          company_logo?: string
           is_approved?: boolean
           is_frozen?: boolean
           created_at?: string

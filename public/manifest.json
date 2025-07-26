@@ -1,0 +1,22 @@
+{
+  "name": "CheckSystem - Sistema eficiente para checklists de motos",
+  "short_name": "CheckSystem",
+  "description": "Sistema eficiente para checklists de motos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/android-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "200x200",
+      "type": "image/svg+xml"
+    }
+  ]
+} 

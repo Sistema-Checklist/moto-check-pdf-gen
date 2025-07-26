@@ -42,24 +42,36 @@ export default function AgendarPublico() {
     e.preventDefault();
     setErro("");
     
-    // Enviar para Supabase
-    const { error } = await supabase.from("agendamentos").insert([
-      {
+    try {
+      console.log('Tentando enviar agendamento:', form);
+      
+      // Enviar para Supabase - versão simplificada para debug
+      const agendamentoData: any = {
         nome: form.nome,
         telefone: form.telefone,
         placa: form.placa,
         tipo: form.tipo,
-        data: form.data,
-        horario: form.horario,
-        obs: form.obs,
         status: "pendente",
-        locatario_rg: "", // Link único para todos os clientes
-      },
-    ]);
-    
-    if (error) {
-      setErro("Erro ao enviar solicitação. Tente novamente.");
-    } else {
+        locatario_rg: ""
+      };
+
+      // Adicionar campos opcionais se existirem
+      if (form.data) agendamentoData.data = form.data;
+      if (form.horario) agendamentoData.horario = form.horario;
+      if (form.obs) agendamentoData.obs = form.obs;
+
+      console.log('Dados a serem enviados:', agendamentoData);
+      
+      const { data, error } = await supabase.from("agendamentos").insert([agendamentoData]);
+      
+      if (error) {
+        console.error('Erro do Supabase:', error);
+        setErro(`Erro ao enviar solicitação: ${error.message || 'Tente novamente.'}`);
+        return;
+      }
+      
+      console.log('Agendamento enviado com sucesso:', data);
+      
       // Buscar o WhatsApp do admin para redirecionar
       const { data: adminData } = await supabase
         .from('user_profiles')
@@ -90,6 +102,9 @@ Por favor, entre em contato para confirmar o agendamento.`;
       }
       
       setEnviado(true);
+    } catch (error) {
+      console.error('Erro inesperado:', error);
+      setErro(`Erro inesperado: ${error.message || 'Tente novamente.'}`);
     }
   }
 

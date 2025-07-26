@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, BikeIcon, UserIcon, HashIcon, ClipboardListIcon, PlusIcon, CheckCircle2, Edit2, Trash2, Fingerprint, ClipboardCopy, Wrench, CalendarDays, Clock, MessageSquare, PhoneIcon } from "lucide-react";
+import { CalendarIcon, BikeIcon, UserIcon, HashIcon, ClipboardListIcon, PlusIcon, CheckCircle2, Edit2, Trash2, Fingerprint, ClipboardCopy, Wrench, CalendarDays, Clock, MessageSquare, PhoneIcon, Download } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SignaturePad from "@/components/SignaturePad";
 import PhotoCapture from "@/components/PhotoCapture";
 import PhotoSection from "@/components/PhotoSection";
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const TABS = [
   { key: "checklist", label: "Checklist", icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -79,6 +81,7 @@ const tipoManutencaoOptions = [
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("checklist");
   const [showForm, setShowForm] = useState(false);
@@ -90,6 +93,7 @@ export default function Index() {
     placa: "",
     cor: "",
     km: "",
+    kmAtual: "",
     chassi: "",
     motor: "",
     cliente: "",
@@ -136,6 +140,8 @@ export default function Index() {
   const [fotosMecanica, setFotosMecanica] = useState<string[]>([]);
   const [fotosSuspensao, setFotosSuspensao] = useState<string[]>([]);
   const [fotosCarroceria, setFotosCarroceria] = useState<string[]>([]);
+  const [fotosObservacoesFinais, setFotosObservacoesFinais] = useState<string[]>([]);
+  const [fotosKmAtual, setFotosKmAtual] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -188,7 +194,8 @@ export default function Index() {
             name: 'Admin Geral',
             email: 'kauankg@hotmail.com',
             phone: '(11) 99999-9999',
-            whatsapp: '',
+            company_name: 'CheckSystem',
+            company_logo: '',
             is_approved: true,
             is_frozen: false,
             created_at: new Date().toISOString(),
@@ -207,7 +214,8 @@ export default function Index() {
                 name: 'Admin Geral',
                 email: 'kauankg@hotmail.com',
                 phone: '(11) 99999-9999',
-                whatsapp: '',
+                company_name: 'CheckSystem',
+                company_logo: '',
                 is_approved: true,
                 is_frozen: false,
                 created_at: new Date().toISOString(),
@@ -266,6 +274,7 @@ export default function Index() {
     }
 
     setUser(user);
+    setUserProfile(profile);
     setLoading(false);
   };
 
@@ -325,30 +334,33 @@ export default function Index() {
   }
 
   function handleSelecionarVistoria(idx: number) {
-    setLocatarios(locatarios.map((loc, i) => i === idx ? { ...loc, selecionado: !loc.selecionado } : { ...loc, selecionado: false }));
+    // Selecionar o locatário e preencher dados automaticamente
+    setLocatarios(locatarios.map((loc, i) => ({ ...loc, selecionado: i === idx })));
+    
     // Preencher dados do checklist
     const loc = locatarios[idx];
-    if (!loc.selecionado) {
+    setClientData((prev) => ({
+      ...prev,
+      cliente: loc.nome,
+      rg: loc.rg,
+    }));
+    
+    // Buscar moto vinculada
+    const moto = motos.find((m) => m.locatarioRg === loc.rg);
+    if (moto) {
       setClientData((prev) => ({
         ...prev,
-        cliente: loc.nome,
-        rg: loc.rg,
+        modelo: moto.modelo,
+        placa: moto.placa,
+        cor: moto.cor,
+        km: moto.km,
+        chassi: moto.chassi,
+        motor: moto.motor,
       }));
-      // Buscar moto vinculada
-      const moto = motos.find((m) => m.locatarioRg === loc.rg);
-      if (moto) {
-        setClientData((prev) => ({
-          ...prev,
-          modelo: moto.modelo,
-          placa: moto.placa,
-          cor: moto.cor,
-          km: moto.km,
-          chassi: moto.chassi,
-          motor: moto.motor,
-        }));
-      }
-      setActiveTab("checklist"); // Troca para a aba de checklist
     }
+    
+    // Trocar para a aba de checklist
+    setActiveTab("checklist");
   }
 
   function handleNovaMotoChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
@@ -413,6 +425,26 @@ export default function Index() {
 
     setShowAgendamentoForm(false);
     setAgendamentoForm({ nome: "", telefone: "", placa: "", tipo: "", data: "", horario: "", obs: "", status: "pendente" });
+
+    // Abrir WhatsApp automaticamente
+    if (userProfile?.whatsapp) {
+      const tipoManutencao = tipoManutencaoOptions.find(opt => opt.value === agendamentoForm.tipo)?.label || agendamentoForm.tipo;
+      const mensagem = `Olá! Recebi uma nova solicitação de agendamento:
+
+👤 Nome: ${agendamentoForm.nome}
+📱 Telefone: ${agendamentoForm.telefone}
+🏍️ Placa: ${agendamentoForm.placa}
+🔧 Tipo: ${tipoManutencao}
+📅 Data: ${agendamentoForm.data}
+⏰ Horário: ${agendamentoForm.horario}
+${agendamentoForm.obs ? `📝 Observações: ${agendamentoForm.obs}` : ''}
+
+Por favor, entre em contato para confirmar o agendamento.`;
+
+      const whatsappNumber = userProfile.whatsapp.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensagem)}`;
+      window.open(whatsappUrl, '_blank');
+    }
   }
 
   // Função para gerar link público único
@@ -433,17 +465,43 @@ export default function Index() {
     return Object.keys(formState).length === totalItems;
   };
 
-  // Função utilitária para radio group
+  // Função utilitária para radio group com caixinhas coloridas
   const RadioGroupCond = ({ name }: { name: string }) => (
-    <div className="flex gap-4 mb-2">
-      <label className="flex items-center gap-1">
-        <input type="radio" name={name} className="accent-violet-600" /> Bom
+    <div className="grid grid-cols-3 gap-3 mb-3">
+      <label className="relative cursor-pointer group">
+        <input 
+          type="radio" 
+          name={name} 
+          value="bom"
+          className="sr-only peer" 
+        />
+        <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-green-50 to-emerald-50 peer-checked:border-green-300 peer-checked:bg-gradient-to-br peer-checked:from-green-100 peer-checked:to-emerald-100 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 shadow-sm hover:shadow-md">
+          <span className="text-sm font-medium text-green-700">Bom</span>
+        </div>
       </label>
-      <label className="flex items-center gap-1">
-        <input type="radio" name={name} className="accent-violet-600" /> Regular
+      
+      <label className="relative cursor-pointer group">
+        <input 
+          type="radio" 
+          name={name} 
+          value="regular"
+          className="sr-only peer" 
+        />
+        <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-yellow-50 to-amber-50 peer-checked:border-yellow-300 peer-checked:bg-gradient-to-br peer-checked:from-yellow-100 peer-checked:to-amber-100 hover:from-yellow-100 hover:to-amber-100 transition-all duration-200 shadow-sm hover:shadow-md">
+          <span className="text-sm font-medium text-yellow-700">Regular</span>
+        </div>
       </label>
-      <label className="flex items-center gap-1">
-        <input type="radio" name={name} className="accent-violet-600" /> Necessita Troca
+      
+      <label className="relative cursor-pointer group">
+        <input 
+          type="radio" 
+          name={name} 
+          value="necessita_troca"
+          className="sr-only peer" 
+        />
+        <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-red-50 to-pink-50 peer-checked:border-red-300 peer-checked:bg-gradient-to-br peer-checked:from-red-100 peer-checked:to-pink-100 hover:from-red-100 hover:to-pink-100 transition-all duration-200 shadow-sm hover:shadow-md">
+          <span className="text-sm font-medium text-red-700">Necessita Troca</span>
+        </div>
       </label>
     </div>
   );
@@ -473,40 +531,294 @@ export default function Index() {
     setter(prev => [...prev, photoData]);
   };
 
-  return (
-    <div className="container mx-auto p-4">
-      {/* Header com logout */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-violet-700">Sistema de Checklist de Motos</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">Usuário: {user?.email}</span>
-          {user?.email === 'kauankg@hotmail.com' && (
-            <Button variant="outline" onClick={() => navigate('/admin')} size="sm">
-              Painel Admin
-            </Button>
-          )}
-          <Button variant="outline" onClick={handleLogout} size="sm">
-            Sair
-          </Button>
+  // Função para gerar PDF do checklist
+  const handleGeneratePDF = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      // Criar um elemento temporário para o PDF
+      const pdfContent = document.createElement('div');
+      pdfContent.style.width = '210mm';
+      pdfContent.style.padding = '20mm';
+      pdfContent.style.backgroundColor = 'white';
+      pdfContent.style.fontFamily = 'Arial, sans-serif';
+      pdfContent.style.fontSize = '12px';
+      pdfContent.style.lineHeight = '1.4';
+      
+      // Cabeçalho
+      const header = document.createElement('div');
+      const companyName = userProfile?.company_name || 'CheckSystem';
+      const companyLogo = userProfile?.company_logo || '';
+      
+      header.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #7c3aed; padding-bottom: 10px;">
+          ${companyLogo ? `<img src="${companyLogo}" style="width: 100px; height: 100px; margin: 0 auto 15px; display: block; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />` : ''}
+          <h1 style="color: #7c3aed; margin: 0; font-size: 32px; font-weight: 800; text-shadow: 0 2px 4px rgba(124, 58, 237, 0.1); letter-spacing: 1px;">${companyName}</h1>
+          <p style="color: #666; margin: 8px 0; font-size: 16px; font-weight: 500;">Sistema eficiente para checklists de motos</p>
+          <h2 style="color: #333; margin: 15px 0; font-size: 22px; font-weight: 700; border-top: 2px solid #e5e7eb; padding-top: 10px;">Relatório de Vistoria</h2>
         </div>
-      </div>
-      {/* Abas horizontais */}
-      <nav className="flex gap-2 mb-6 border-b border-gray-200">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-md font-medium transition-colors duration-150 ${activeTab === tab.key ? 'bg-white text-violet-700 border-x border-t border-b-0 border-violet-200 shadow-sm' : 'text-gray-500 hover:text-violet-700'}`}
-            onClick={() => setActiveTab(tab.key)}
-            type="button"
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-      {/* Conteúdo das abas */}
-      {activeTab === "checklist" && (
-        <form className="space-y-8">
+      `;
+      pdfContent.appendChild(header);
+
+      // Dados da moto e cliente
+      const motoData = document.createElement('div');
+      motoData.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Dados da Moto e Cliente</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold; width: 30%;">Modelo:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.modelo || 'Não informado'}</td>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold; width: 30%;">Placa:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.placa || 'Não informado'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Cor:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.cor || 'Não informado'}</td>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">KM:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.km || 'Não informado'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Chassi:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.chassi || 'Não informado'}</td>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Motor:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.motor || 'Não informado'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Cliente:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.cliente || 'Não informado'}</td>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">RG:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.rg || 'Não informado'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Data da Vistoria:</td>
+              <td style="padding: 5px; border: 1px solid #ddd;" colspan="3">${clientData.data || 'Não informado'}</td>
+            </tr>
+          </table>
+        </div>
+      `;
+      pdfContent.appendChild(motoData);
+
+      // Checklist de condições
+      const checklistData = document.createElement('div');
+      checklistData.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Checklist de Condições</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Item</th>
+              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Bom</th>
+              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Regular</th>
+              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Necessita Troca</th>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pneu Dianteiro</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pneu Traseiro</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Freio</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Farol</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Lanterna</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Setas</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Bateria</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Motor</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Transmissão</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Suspensão Dianteira</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Suspensão Traseira</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Carroceria, Tanque e Banco</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="bom"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="regular"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            </tr>
+          </table>
+        </div>
+      `;
+      pdfContent.appendChild(checklistData);
+
+      // Observações finais
+      const observacoes = document.querySelector('textarea[placeholder*="observações finais"]') as HTMLTextAreaElement;
+      if (observacoes && observacoes.value.trim()) {
+        const observacoesData = document.createElement('div');
+        observacoesData.innerHTML = `
+          <div style="margin-bottom: 20px;">
+            <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Observações Finais</h3>
+            <div style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 5px;">
+              ${observacoes.value}
+            </div>
+          </div>
+        `;
+        pdfContent.appendChild(observacoesData);
+      }
+
+      // Rodapé
+      const footer = document.createElement('div');
+      footer.innerHTML = `
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 10px;">
+          <p>Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+        </div>
+      `;
+      pdfContent.appendChild(footer);
+
+      // Adicionar ao DOM temporariamente
+      document.body.appendChild(pdfContent);
+
+      // Gerar PDF
+      const canvas = await html2canvas(pdfContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Remover do DOM
+      document.body.removeChild(pdfContent);
+
+      // Criar PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Nome do arquivo
+      const fileName = `vistoria_${clientData.placa || 'sem_placa'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Download do PDF
+      pdf.save(fileName);
+
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar o PDF. Tente novamente.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50">
+      <div className="container mx-auto p-4 max-w-4xl">
+        {/* Header com logout */}
+        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-violet-100">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3">
+                {userProfile?.company_logo && (
+                  <img 
+                    src={userProfile.company_logo} 
+                    alt="Logo da empresa" 
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                )}
+                <h1 className="text-2xl font-bold text-violet-700">
+                  {userProfile?.company_name || 'CheckSystem'}
+                </h1>
+              </div>
+              <p className="text-sm text-gray-600">Sistema eficiente para checklists de motos</p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <span className="text-sm text-gray-600 hidden sm:block">Bem-Vindo {userProfile?.company_name || 'CheckSystem'}</span>
+              <div className="flex gap-2">
+                {user?.email === 'kauankg@hotmail.com' && (
+                  <Button variant="outline" onClick={() => navigate('/admin')} size="sm" className="text-xs">
+                    Admin
+                  </Button>
+                )}
+                <Button variant="outline" onClick={handleLogout} size="sm" className="text-xs">
+                  Sair
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Abas responsivas */}
+        <nav className="bg-white rounded-xl p-2 mb-6 shadow-sm border border-violet-100">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 py-3 rounded-lg font-medium transition-all duration-200 text-sm ${
+                  activeTab === tab.key 
+                    ? 'bg-violet-600 text-white shadow-md' 
+                    : 'text-gray-600 hover:bg-violet-50 hover:text-violet-700'
+                }`}
+                onClick={() => setActiveTab(tab.key)}
+                type="button"
+              >
+                {tab.icon}
+                <span className="text-xs sm:text-sm">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+        
+        {/* Conteúdo das abas */}
+        {activeTab === "checklist" && (
+        <form className="space-y-8" onSubmit={handleGeneratePDF}>
           {/* Dados da Moto e Cliente */}
           <Card className="bg-violet-50">
             <CardHeader className="flex flex-row items-center gap-2 pb-2">
@@ -551,6 +863,29 @@ export default function Index() {
               <div className="mb-2">
                 <Label htmlFor="data">Data da Vistoria</Label>
                 <Input name="data" id="data" type="date" value={clientData.data} onChange={handleClientChange} />
+              </div>
+            </CardContent>
+          </Card>
+          {/* KM Atual */}
+          <Card className="bg-violet-50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-violet-700">KM Atual</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="kmAtual">KM Atual (Painel)</Label>
+                  <Input name="kmAtual" id="kmAtual" placeholder="Ex: 15250" value={clientData.kmAtual || ''} onChange={handleClientChange} />
+                </div>
+                <div>
+                  <Label className="block mb-2 text-sm font-medium text-gray-700">Foto do Painel</Label>
+                  <PhotoCapture
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosKmAtual)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosKmAtual)}
+                    currentCount={fotosKmAtual.length}
+                    label="KM Atual"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -831,14 +1166,31 @@ export default function Index() {
             </CardContent>
           </Card>
           {/* Observações Finais */}
-          <Card className="bg-violet-50">
+          <Card className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-xl border border-violet-100 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-violet-700">Observações Finais (Opcional)</CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-violet-500 rounded-full"></div>
+                <CardTitle className="text-lg font-semibold text-violet-800">Observações Finais (Opcional)</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div>
-                <Label className="block mb-1">Observações</Label>
-                <textarea className="w-full rounded border p-2 text-sm" placeholder="Digite suas observações aqui..." rows={3}></textarea>
+                <Label className="block mb-2 text-sm font-medium text-gray-700">Observações</Label>
+                <textarea 
+                  className="w-full rounded-lg border border-gray-200 p-3 text-sm bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all duration-200 resize-none" 
+                  placeholder="Digite suas observações finais aqui..." 
+                  rows={4}
+                />
+              </div>
+              
+              <div>
+                <Label className="block mb-2 text-sm font-medium text-gray-700">Fotos das Observações</Label>
+                <PhotoCapture
+                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosObservacoesFinais)}
+                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosObservacoesFinais)}
+                  currentCount={fotosObservacoesFinais.length}
+                  label="Observações Finais"
+                />
               </div>
             </CardContent>
           </Card>
@@ -864,13 +1216,14 @@ export default function Index() {
                 />
               </div>
             </div>
-            <div className="text-xs text-gray-400 mt-2">CNPJ: 55.050.610/0001-91</div>
+
           </CardContent>
         </Card>
           {/* Checklist virá aqui nas próximas etapas */}
           <div className="text-center">
-            <Button type="submit" disabled={!isFormValid()}>
-              Gerar PDF
+            <Button type="submit" className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+              <Download className="w-5 h-5 mr-2" />
+              Download Vistoria
             </Button>
           </div>
         </form>
@@ -938,7 +1291,7 @@ export default function Index() {
                       </div>
                     </div>
                     <div className="flex flex-col md:flex-row gap-2 md:items-center">
-                      <Button className={`flex items-center gap-1 ${loc.selecionado ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`} size="sm" onClick={() => handleSelecionarVistoria(idx)}>
+                      <Button className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white" size="sm" onClick={() => handleSelecionarVistoria(idx)}>
                         <CheckCircle2 className="w-4 h-4" /> Sel. p/ Vistoria
                       </Button>
                       <Button variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50 flex items-center gap-1" size="sm" onClick={() => handleEditarLocatario(idx)}>
@@ -957,10 +1310,25 @@ export default function Index() {
       )}
       {activeTab === "motos" && (
         <div>
-          {/* Formulário de cadastro de moto */}
-          {!showMotoForm ? (
-            <Button className="mb-4 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setShowMotoForm(true)}>Nova Moto</Button>
-          ) : (
+          {/* Gerenciar Motos */}
+          <Card className="mb-4">
+            <CardContent className="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <BikeIcon className="text-violet-600 w-7 h-7" /> Gerenciar Motos
+              </div>
+              {!showMotoForm ? (
+                <Button variant="ghost" className="text-violet-600 flex items-center gap-1 font-semibold" onClick={() => setShowMotoForm(true)}>
+                  <PlusIcon className="w-5 h-5" /> Nova Moto
+                </Button>
+              ) : (
+                <Button variant="ghost" className="text-violet-600 flex items-center gap-1 font-semibold" onClick={handleCancelarMoto}>
+                  <PlusIcon className="w-5 h-5" /> Fechar Formulário
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          {/* Formulário de novo moto ou edição */}
+          {showMotoForm && (
             <Card className="mb-4">
               <CardContent className="py-6">
                 <form onSubmit={editMotoIdx !== null ? handleSalvarEdicaoMoto : handleCadastrarMoto} className="space-y-4">
@@ -1007,7 +1375,9 @@ export default function Index() {
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button type="button" variant="outline" className="flex-1" onClick={handleCancelarMoto}>Cancelar</Button>
-                    <Button type="submit" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white">{editMotoIdx !== null ? "Salvar" : "Cadastrar Moto"}</Button>
+                    <Button type="submit" className="flex-1 bg-green-500 hover:bg-green-600 text-white">
+                      {editMotoIdx !== null ? "Salvar" : "Cadastrar Moto"}
+                    </Button>
                   </div>
                 </form>
               </CardContent>
@@ -1024,11 +1394,14 @@ export default function Index() {
                   const loc = locatarios.find(l => l.rg === moto.locatarioRg);
                   return (
                     <div key={moto.chassi + idx} className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-gray-100">
-                      <div>
-                        <div className="font-semibold text-lg text-gray-800">{moto.modelo} - {moto.placa}</div>
-                        <div className="text-sm text-gray-500">Locatário: {loc ? loc.nome : "-"} (RG: {moto.locatarioRg}) | KM: {moto.km}</div>
-                        <div className="text-xs text-gray-400">Chassi: {moto.chassi} | Motor: {moto.motor}</div>
-                        {moto.obs && <div className="text-xs text-gray-500 mt-1">Obs: {moto.obs}</div>}
+                      <div className="flex items-center gap-3">
+                        <BikeIcon className="text-violet-600 w-7 h-7" />
+                        <div>
+                          <div className="font-semibold text-lg text-gray-800">{moto.modelo} - {moto.placa}</div>
+                          <div className="text-sm text-gray-500">Locatário: {loc ? loc.nome : "-"} (RG: {moto.locatarioRg}) | KM: {moto.km}</div>
+                          <div className="text-xs text-gray-400">Chassi: {moto.chassi} | Motor: {moto.motor}</div>
+                          {moto.obs && <div className="text-xs text-gray-500 mt-1">Obs: {moto.obs}</div>}
+                        </div>
                       </div>
                       <div className="flex flex-col md:flex-row gap-2 md:items-center">
                         <Button variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50 flex items-center gap-1" size="sm" onClick={() => handleEditarMoto(idx)}>
@@ -1111,10 +1484,10 @@ export default function Index() {
           </Card>
           {/* Modal/aba exclusiva para solicitação de agendamento (link público ou interno) */}
           {showAgendamentoForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-              <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 relative">
-                <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => { setShowAgendamentoForm(false); }}>&times;</button>
-                <div className="text-2xl font-bold text-violet-700 mb-4 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendar Manutenção da Moto</div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+              <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 relative max-h-[90vh] overflow-y-auto">
+                <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={() => { setShowAgendamentoForm(false); }}>&times;</button>
+                <div className="text-2xl font-bold text-violet-700 mb-6 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendar Manutenção da Moto</div>
                 <form onSubmit={handleEnviarAgendamento} className="space-y-4">
                   <div>
                     <Label htmlFor="nome">Seu Nome Completo <span className="text-red-500">*</span></Label>
@@ -1167,8 +1540,8 @@ export default function Index() {
                       <textarea id="obs" name="obs" placeholder="Descreva o problema ou detalhes adicionais aqui..." className="w-full rounded border p-2 text-sm" value={agendamentoForm.obs} onChange={handleAgendamentoChange} />
                     </div>
                   </div>
-                  <div className="pt-2">
-                    <Button type="submit" className="w-full bg-gradient-to-r from-violet-500 to-blue-500 text-white text-lg font-semibold flex items-center justify-center gap-2 py-3">
+                  <div className="pt-4 pb-2">
+                    <Button type="submit" className="w-full bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white text-lg font-semibold flex items-center justify-center gap-2 py-3 rounded-lg shadow-lg">
                       <span>Enviar Solicitação</span>
                     </Button>
                   </div>
@@ -1178,6 +1551,7 @@ export default function Index() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

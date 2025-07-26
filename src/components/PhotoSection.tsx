@@ -18,20 +18,25 @@ export default function PhotoSection({
   placeholder 
 }: PhotoSectionProps) {
   return (
-    <div className="bg-blue-50 rounded p-4 mb-2">
-      <Label className="mb-1 block">{title}</Label>
+    <div className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-xl p-6 mb-4 border border-violet-100 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-2 h-2 bg-violet-500 rounded-full"></div>
+        <Label className="text-lg font-semibold text-violet-800">{title}</Label>
+      </div>
+      
       <PhotoCapture
         onPhotoCapture={onPhotoCapture}
         onPhotoSelect={onPhotoSelect}
         currentCount={photos.length}
         label={title}
       />
-      <div>
-        <Label className="block mb-1">Observação</Label>
+      
+      <div className="mt-4">
+        <Label className="block mb-2 text-sm font-medium text-gray-700">Observação</Label>
         <textarea 
-          className="w-full rounded border p-2 text-sm" 
+          className="w-full rounded-lg border border-gray-200 p-3 text-sm bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all duration-200 resize-none" 
           placeholder={placeholder} 
-          rows={2}
+          rows={3}
         />
       </div>
     </div>
