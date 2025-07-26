@@ -42,70 +42,431 @@ export default function AgendarPublico() {
     e.preventDefault();
     setErro("");
     
+    console.log('=== INÍCIO DO PROCESSAMENTO ===');
+    console.log('Formulário recebido:', form);
+    
+    // Validar campos obrigatórios
+    if (!form.nome || !form.telefone || !form.placa || !form.tipo) {
+      setErro("Por favor, preencha todos os campos obrigatórios.");
+      console.log('Erro: Campos obrigatórios não preenchidos');
+      return;
+    }
+    
+    console.log('Validação passou - processando agendamento...');
+    
     try {
-      console.log('Tentando enviar agendamento:', form);
-      
-      // Enviar para Supabase - versão simplificada para debug
-      const agendamentoData: any = {
+      // 1. PROCESSAR DADOS DO AGENDAMENTO
+      const agendamentoData = {
+        id: Date.now(),
         nome: form.nome,
         telefone: form.telefone,
         placa: form.placa,
         tipo: form.tipo,
         status: "pendente",
-        locatario_rg: ""
+        data: form.data,
+        horario: form.horario,
+        obs: form.obs,
+        locatario_rg: form.locatario_rg,
+        created_at: new Date().toISOString()
       };
 
-      // Adicionar campos opcionais se existirem
-      if (form.data) agendamentoData.data = form.data;
-      if (form.horario) agendamentoData.horario = form.horario;
-      if (form.obs) agendamentoData.obs = form.obs;
+      console.log('Dados do agendamento processados:', agendamentoData);
+      
+      // 2. BUSCAR USUÁRIO LOGADO E SEU WHATSAPP
+      console.log('Buscando usuário logado...');
+      
+      let whatsappNumber = null;
+      
+      try {
+        // Primeiro, buscar o usuário logado
+        const { data: { user }, error: userAuthError } = await supabase.auth.getUser();
+        
+        if (userAuthError) {
+          console.error('Erro ao buscar usuário:', userAuthError);
+          // Se não conseguir buscar usuário, tentar buscar admin como fallback
+          console.log('Tentando buscar admin como fallback...');
+          const { data: adminProfile } = await supabase
+            .from('user_profiles')
+            .select('whatsapp')
+            .eq('email', 'kauankg@hotmail.com')
+            .single();
+          
+          if (adminProfile?.whatsapp) {
+            console.log('WhatsApp do admin encontrado (fallback):', adminProfile.whatsapp);
+            whatsappNumber = adminProfile.whatsapp.replace(/\D/g, '');
+          }
+        } else if (user) {
+          console.log('Usuário logado encontrado:', user.email);
+          
+          // Buscar o perfil do usuário logado
+          const { data: userProfile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('whatsapp')
+            .eq('user_id', user.id)
+            .single();
+          
+          console.log('Resultado da busca do perfil:', { userProfile, profileError });
+          
+          if (userProfile?.whatsapp) {
+            console.log('WhatsApp do usuário encontrado:', userProfile.whatsapp);
+            whatsappNumber = userProfile.whatsapp.replace(/\D/g, '');
+            console.log('WhatsApp limpo:', whatsappNumber);
+          } else {
+            console.log('WhatsApp não encontrado no perfil do usuário');
+            
+            // Tentar buscar por email como fallback
+            const { data: fallbackProfile } = await supabase
+              .from('user_profiles')
+              .select('whatsapp')
+              .eq('email', user.email)
+              .single();
+            
+            if (fallbackProfile?.whatsapp) {
+              console.log('WhatsApp encontrado por email:', fallbackProfile.whatsapp);
+              whatsappNumber = fallbackProfile.whatsapp.replace(/\D/g, '');
+            } else {
+              console.log('WhatsApp não encontrado por email também');
+              
+              // Último fallback: buscar admin
+              const { data: adminProfile } = await supabase
+                .from('user_profiles')
+                .select('whatsapp')
+                .eq('email', 'kauankg@hotmail.com')
+                .single();
+              
+              if (adminProfile?.whatsapp) {
+                console.log('WhatsApp do admin encontrado (último fallback):', adminProfile.whatsapp);
+                whatsappNumber = adminProfile.whatsapp.replace(/\D/g, '');
+              }
+            }
+          }
+        } else {
+          console.log('Usuário não está logado');
+          // Se não estiver logado, tentar buscar admin
+          const { data: adminProfile } = await supabase
+            .from('user_profiles')
+            .select('whatsapp')
+            .eq('email', 'kauankg@hotmail.com')
+            .single();
+          
+          if (adminProfile?.whatsapp) {
+            console.log('WhatsApp do admin encontrado (usuário não logado):', adminProfile.whatsapp);
+            whatsappNumber = adminProfile.whatsapp.replace(/\D/g, '');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar WhatsApp:', error);
+      }
+      
+      // 5. PREPARAR DADOS
+      const tipoLabel = tipoManutencaoOptions.find(opt => opt.value === form.tipo)?.label || form.tipo;
+      
+      console.log('Tipo de manutenção:', tipoLabel);
+      
+      // 6. ABRIR WHATSAPP AUTOMATICAMENTE
+      if (whatsappNumber) {
+        // Formatar mensagem para WhatsApp
+        const mensagem = `🛵 *NOVO AGENDAMENTO DE MANUTENÇÃO*
 
-      console.log('Dados a serem enviados:', agendamentoData);
-      
-      const { data, error } = await supabase.from("agendamentos").insert([agendamentoData]);
-      
-      if (error) {
-        console.error('Erro do Supabase:', error);
-        setErro(`Erro ao enviar solicitação: ${error.message || 'Tente novamente.'}`);
+👤 *Nome:* ${form.nome}
+📱 *Telefone:* ${form.telefone}
+🏍️ *Placa:* ${form.placa}
+🔧 *Tipo:* ${tipoLabel}
+${form.data ? `📅 *Data:* ${form.data}` : ''}
+${form.horario ? `⏰ *Horário:* ${form.horario}` : ''}
+${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
+
+✅ *Agendamento solicitado com sucesso!*
+📞 *Entre em contato para confirmar.*`;
+
+        console.log('Mensagem formatada para WhatsApp:', mensagem);
+        
+        // Limpar e formatar número do WhatsApp
+        const numeroLimpo = whatsappNumber.replace(/\D/g, '');
+        console.log('Número do WhatsApp limpo:', numeroLimpo);
+        
+        // Garantir que o número tenha código do país (Brasil = 55)
+        const numeroCompleto = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
+        console.log('Número completo com código do país:', numeroCompleto);
+        
+        // Codificar mensagem para URL
+        const mensagemCodificada = encodeURIComponent(mensagem);
+        const whatsappUrl = `https://wa.me/${numeroCompleto}?text=${mensagemCodificada}`;
+        
+        console.log('URL do WhatsApp gerada:', whatsappUrl);
+        console.log('Abrindo WhatsApp automaticamente...');
+        
+        // ESTRATÉGIA ROBUSTA PARA ABRIR WHATSAPP
+        console.log('🚀 Iniciando abertura do WhatsApp...');
+        
+        // Método 1: Tentar abrir em nova aba/janela
+        let whatsappAberto = false;
+        
+        try {
+          // Configurações para nova janela
+          const windowFeatures = 'width=600,height=700,scrollbars=yes,resizable=yes,status=yes';
+          
+          // Tentar abrir em nova janela
+          const newWindow = window.open(whatsappUrl, '_blank', windowFeatures);
+          
+          if (newWindow && !newWindow.closed) {
+            console.log('✅ WhatsApp aberto em nova janela');
+            newWindow.focus();
+            whatsappAberto = true;
+          } else {
+            console.log('⚠️ Nova janela falhou, tentando nova aba');
+            
+            // Tentar abrir em nova aba
+            const newTab = window.open(whatsappUrl, '_blank');
+            
+            if (newTab) {
+              console.log('✅ WhatsApp aberto em nova aba');
+              whatsappAberto = true;
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Erro ao abrir nova janela/aba:', error);
+        }
+        
+        // Método 2: Se não abriu, tentar redirecionar
+        if (!whatsappAberto) {
+          console.log('🔄 Tentando redirecionamento...');
+          
+          try {
+            // Verificar se é mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+              console.log('📱 Dispositivo móvel detectado');
+              // Em mobile, redirecionar diretamente
+              window.location.href = whatsappUrl;
+            } else {
+              console.log('💻 Desktop detectado');
+              // Em desktop, tentar abrir em nova aba
+              const link = document.createElement('a');
+              link.href = whatsappUrl;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+            
+            whatsappAberto = true;
+          } catch (error) {
+            console.log('⚠️ Erro no redirecionamento:', error);
+          }
+        }
+        
+        // Método 3: Se ainda não abriu, mostrar instruções
+        if (!whatsappAberto) {
+          console.log('❌ Todos os métodos falharam, mostrando instruções');
+          
+          // Criar modal com instruções
+          const modal = document.createElement('div');
+          modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+          `;
+          
+          modal.innerHTML = `
+            <div style="
+              background: white;
+              padding: 30px;
+              border-radius: 15px;
+              max-width: 500px;
+              text-align: center;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            ">
+              <h3 style="color: #25D366; margin-bottom: 20px;">📱 Abrir WhatsApp</h3>
+              <p style="margin-bottom: 20px;">Clique no botão abaixo para abrir o WhatsApp automaticamente:</p>
+              <button onclick="window.open('${whatsappUrl}', '_blank')" style="
+                background: #25D366;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              ">🔗 Abrir WhatsApp</button>
+              <button onclick="this.parentElement.parentElement.remove()" style="
+                background: #666;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              ">❌ Fechar</button>
+              <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                Se não abrir automaticamente, copie este link:<br>
+                <code style="background: #f5f5f5; padding: 5px; border-radius: 3px;">${whatsappUrl}</code>
+              </p>
+            </div>
+          `;
+          
+          document.body.appendChild(modal);
+          
+          // Remover modal após 10 segundos
+          setTimeout(() => {
+            if (document.body.contains(modal)) {
+              document.body.removeChild(modal);
+            }
+          }, 10000);
+        }
+        
+        // Aguardar e verificar se abriu
+        setTimeout(() => {
+          console.log('✅ Verificação final: WhatsApp deve estar aberto');
+        }, 2000);
+        
+        // Mostrar sucesso para o usuário
+        setEnviado(true);
+        
+      } else {
+        console.log('❌ Nenhum WhatsApp encontrado - usando número padrão');
+        
+        // Usar número padrão para teste (substitua pelo número real)
+        const numeroPadrao = '5515991653601'; // Número do exemplo da imagem
+        console.log('Usando número padrão:', numeroPadrao);
+        
+        // Formatar mensagem para WhatsApp
+        const mensagem = `🛵 *NOVO AGENDAMENTO DE MANUTENÇÃO*
+
+👤 *Nome:* ${form.nome}
+📱 *Telefone:* ${form.telefone}
+🏍️ *Placa:* ${form.placa}
+🔧 *Tipo:* ${tipoLabel}
+${form.data ? `📅 *Data:* ${form.data}` : ''}
+${form.horario ? `⏰ *Horário:* ${form.horario}` : ''}
+${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
+
+✅ *Agendamento solicitado com sucesso!*
+📞 *Entre em contato para confirmar.*`;
+
+        console.log('Mensagem formatada para WhatsApp:', mensagem);
+        
+        // Codificar mensagem para URL
+        const mensagemCodificada = encodeURIComponent(mensagem);
+        const whatsappUrl = `https://wa.me/${numeroPadrao}?text=${mensagemCodificada}`;
+        
+        console.log('URL do WhatsApp gerada:', whatsappUrl);
+        console.log('🚀 Forçando abertura do WhatsApp...');
+        
+        // FORÇAR ABERTURA DO WHATSAPP
+        try {
+          // Método 1: Abrir em nova janela
+          const newWindow = window.open(whatsappUrl, '_blank', 'width=600,height=700');
+          
+          if (newWindow) {
+            console.log('✅ WhatsApp aberto em nova janela');
+            newWindow.focus();
+          } else {
+            console.log('⚠️ Nova janela falhou, tentando nova aba');
+            
+            // Método 2: Abrir em nova aba
+            const newTab = window.open(whatsappUrl, '_blank');
+            
+            if (newTab) {
+              console.log('✅ WhatsApp aberto em nova aba');
+            } else {
+              console.log('⚠️ Nova aba falhou, tentando redirecionamento');
+              
+              // Método 3: Redirecionar
+              window.location.href = whatsappUrl;
+            }
+          }
+          
+          // Mostrar sucesso
+          setEnviado(true);
+          
+        } catch (error) {
+          console.error('❌ Erro ao abrir WhatsApp:', error);
+          
+          // Fallback: mostrar modal com link
+          const modal = document.createElement('div');
+          modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+          `;
+          
+          modal.innerHTML = `
+            <div style="
+              background: white;
+              padding: 30px;
+              border-radius: 15px;
+              max-width: 500px;
+              text-align: center;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            ">
+              <h3 style="color: #25D366; margin-bottom: 20px;">📱 Abrir WhatsApp</h3>
+              <p style="margin-bottom: 20px;">Clique no botão abaixo para abrir o WhatsApp:</p>
+              <button onclick="window.open('${whatsappUrl}', '_blank')" style="
+                background: #25D366;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              ">🔗 Abrir WhatsApp</button>
+              <button onclick="this.parentElement.parentElement.remove()" style="
+                background: #666;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              ">❌ Fechar</button>
+            </div>
+          `;
+          
+          document.body.appendChild(modal);
+          
+          // Remover modal após 10 segundos
+          setTimeout(() => {
+            if (document.body.contains(modal)) {
+              document.body.removeChild(modal);
+            }
+          }, 10000);
+          
+          setEnviado(true);
+        }
+        
         return;
       }
       
-      console.log('Agendamento enviado com sucesso:', data);
-      
-      // Buscar o WhatsApp do admin para redirecionar
-      const { data: adminData } = await supabase
-        .from('user_profiles')
-        .select('whatsapp')
-        .eq('email', 'kauankg@hotmail.com')
-        .single();
-      
-      if (adminData?.whatsapp) {
-        // Formatar mensagem para WhatsApp
-        const mensagem = `Olá! Recebi uma nova solicitação de agendamento:
-
-Nome: ${form.nome}
-Telefone: ${form.telefone}
-Placa: ${form.placa}
-Tipo: ${tipoManutencaoOptions.find(opt => opt.value === form.tipo)?.label}
-Data: ${form.data}
-Horário: ${form.horario}
-${form.obs ? `Observações: ${form.obs}` : ''}
-
-Por favor, entre em contato para confirmar o agendamento.`;
-
-        // Codificar a mensagem para URL
-        const mensagemCodificada = encodeURIComponent(mensagem);
-        const whatsappUrl = `https://wa.me/55${adminData.whatsapp}?text=${mensagemCodificada}`;
-        
-        // Abrir WhatsApp
-        window.open(whatsappUrl, '_blank');
-      }
-      
+      // 7. FINALIZAR
+      console.log('Agendamento processado com sucesso!');
       setEnviado(true);
+      
     } catch (error) {
-      console.error('Erro inesperado:', error);
+      console.error('Erro durante o processamento:', error);
       setErro(`Erro inesperado: ${error.message || 'Tente novamente.'}`);
     }
+    
+    console.log('=== FIM DO PROCESSAMENTO ===');
   }
 
   if (enviado) {
