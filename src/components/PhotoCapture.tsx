@@ -125,11 +125,17 @@ export default function PhotoCapture({
     }
   };
 
-  const selectFromGallery = () => {
+  const selectFromGallery = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     fileInputRef.current?.click();
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -143,6 +149,8 @@ export default function PhotoCapture({
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isAnnotating) return;
     
     const canvas = annotationCanvasRef.current;
@@ -157,6 +165,8 @@ export default function PhotoCapture({
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isDrawing || !isAnnotating) return;
     
     const canvas = annotationCanvasRef.current;
@@ -169,7 +179,9 @@ export default function PhotoCapture({
     setDrawingPath(prev => [...prev, { x, y }]);
   };
 
-  const handleCanvasMouseUp = () => {
+  const handleCanvasMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isDrawing || !isAnnotating) return;
     
     setIsDrawing(false);
@@ -270,7 +282,17 @@ export default function PhotoCapture({
 
   if (isCameraOpen) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      <div 
+        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <div className="relative w-full h-full max-w-2xl max-h-2xl">
           <video
             ref={videoRef}
@@ -280,7 +302,11 @@ export default function PhotoCapture({
           />
           <div className="absolute top-4 right-4 flex gap-2">
             <Button
-              onClick={() => setIsCameraOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsCameraOpen(false);
+              }}
               variant="outline"
               size="sm"
               className="bg-white"
@@ -291,7 +317,11 @@ export default function PhotoCapture({
           </div>
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <Button
-              onClick={capturePhoto}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                capturePhoto();
+              }}
               size="lg"
               className="bg-violet-600 hover:bg-violet-700"
               type="button"
@@ -306,7 +336,17 @@ export default function PhotoCapture({
 
   if (isAnnotating && currentPhoto) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      <div 
+        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <div className="relative w-full h-full max-w-4xl max-h-4xl p-4">
           <div className="bg-white rounded-lg p-4 h-full flex flex-col">
             <div className="flex justify-between items-center mb-4">
@@ -315,7 +355,11 @@ export default function PhotoCapture({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDrawingMode('circle')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDrawingMode('circle');
+                  }}
                   className={drawingMode === 'circle' ? 'bg-violet-100' : ''}
                   type="button"
                 >
@@ -325,7 +369,11 @@ export default function PhotoCapture({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDrawingMode('arrow')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDrawingMode('arrow');
+                  }}
                   className={drawingMode === 'arrow' ? 'bg-violet-100' : ''}
                   type="button"
                 >
@@ -334,7 +382,11 @@ export default function PhotoCapture({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDrawingMode('line')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDrawingMode('line');
+                  }}
                   className={drawingMode === 'line' ? 'bg-violet-100' : ''}
                   type="button"
                 >
@@ -343,7 +395,11 @@ export default function PhotoCapture({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={clearAnnotations}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearAnnotations();
+                  }}
                   type="button"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -364,7 +420,11 @@ export default function PhotoCapture({
             
             <div className="flex gap-2 mt-4">
               <Button
-                onClick={cancelAnnotation}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  cancelAnnotation();
+                }}
                 variant="outline"
                 className="flex-1"
                 type="button"
@@ -372,7 +432,11 @@ export default function PhotoCapture({
                 Cancelar
               </Button>
               <Button
-                onClick={saveAnnotatedPhoto}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  saveAnnotatedPhoto();
+                }}
                 className="flex-1 bg-violet-600 hover:bg-violet-700"
                 type="button"
               >
@@ -388,13 +452,27 @@ export default function PhotoCapture({
 
   if (isViewing && viewingPhoto) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+      <div 
+        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <div className="relative w-full h-full max-w-4xl max-h-4xl p-4">
           <div className="bg-white rounded-lg p-4 h-full flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Visualizar {label}</h3>
               <Button
-                onClick={() => setIsViewing(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsViewing(false);
+                }}
                 variant="outline"
                 size="sm"
                 type="button"
@@ -417,7 +495,17 @@ export default function PhotoCapture({
   }
 
   return (
-    <div className="space-y-4">
+    <div 
+      className="space-y-4"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       {/* Botões de captura */}
       <div className="grid grid-cols-2 gap-3">
         <Button
@@ -442,7 +530,7 @@ export default function PhotoCapture({
             console.log('Botão galeria clicado');
             e.preventDefault();
             e.stopPropagation();
-            selectFromGallery();
+            selectFromGallery(e);
           }}
           className="flex flex-col items-center justify-center h-20 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200 hover:border-blue-300 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200"
           disabled={currentCount >= maxPhotos}
@@ -466,7 +554,11 @@ export default function PhotoCapture({
                     src={photo}
                     alt={`${label} ${index + 1}`}
                     className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => viewPhoto(photo)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      viewPhoto(photo);
+                    }}
                   />
                   
                   {/* Botões de ação */}
@@ -476,7 +568,11 @@ export default function PhotoCapture({
                         size="sm"
                         variant="secondary"
                         className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-                        onClick={() => viewPhoto(photo)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          viewPhoto(photo);
+                        }}
                         type="button"
                       >
                         <Eye className="h-4 w-4 text-gray-700" />
@@ -485,7 +581,11 @@ export default function PhotoCapture({
                         size="sm"
                         variant="destructive"
                         className="h-8 w-8 p-0 bg-red-500 hover:bg-red-600"
-                        onClick={() => deletePhoto(index)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          deletePhoto(index);
+                        }}
                         type="button"
                       >
                         <Trash2 className="h-4 w-4 text-white" />
