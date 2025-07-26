@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Image, X, PenTool, RotateCcw, Save, Trash2, Eye } from 'lucide-react';
+import { Camera, Image, X, Trash2, Eye } from 'lucide-react';
 
 interface PhotoCaptureProps {
   onPhotoCapture: (photoData: string) => void;
@@ -22,18 +22,11 @@ export default function PhotoCapture({
   onPhotoDelete
 }: PhotoCaptureProps) {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isAnnotating, setIsAnnotating] = useState(false);
-  const [currentPhoto, setCurrentPhoto] = useState<string | null>(null);
-  const [annotations, setAnnotations] = useState<Array<{x: number, y: number, type: 'circle' | 'arrow' | 'line', data?: string}>>([]);
-  const [drawingMode, setDrawingMode] = useState<'circle' | 'arrow' | 'line'>('circle');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawingPath, setDrawingPath] = useState<Array<{x: number, y: number}>>([]);
   const [isViewing, setIsViewing] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState<string | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const annotationCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -44,31 +37,6 @@ export default function PhotoCapture({
       stopCamera();
     }
   }, [isCameraOpen]);
-
-  useEffect(() => {
-    if (currentPhoto && annotationCanvasRef.current) {
-      const canvas = annotationCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Limpar canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Desenhar foto de fundo
-        const img = document.createElement('img');
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          
-          // Redesenhar anotações
-          annotations.forEach(annotation => {
-            drawAnnotation(ctx, annotation);
-          });
-        };
-        img.src = currentPhoto;
-      }
-    }
-  }, [currentPhoto, annotations]);
 
   const startCamera = async () => {
     console.log('Iniciando câmera...');
@@ -114,9 +82,10 @@ export default function PhotoCapture({
         
         const photoData = canvas.toDataURL('image/jpeg', 0.8);
         console.log('Foto capturada com sucesso, tamanho:', photoData.length);
-        setCurrentPhoto(photoData);
+        
+        // Salvar foto diretamente no checklist
+        onPhotoCapture(photoData);
         setIsCameraOpen(false);
-        setIsAnnotating(true);
       } else {
         console.error('Não foi possível obter o contexto do canvas');
       }
@@ -130,135 +99,26 @@ export default function PhotoCapture({
       e.preventDefault();
       e.stopPropagation();
     }
+    console.log('Abrindo galeria...');
     fileInputRef.current?.click();
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    console.log('Arquivo selecionado:', event.target.files?.[0]);
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const photoData = e.target?.result as string;
-        setCurrentPhoto(photoData);
-        setIsAnnotating(true);
+        console.log('Foto da galeria carregada, tamanho:', photoData.length);
+        onPhotoSelect(photoData);
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isAnnotating) return;
-    
-    const canvas = annotationCanvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setIsDrawing(true);
-    setDrawingPath([{ x, y }]);
-  };
-
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isDrawing || !isAnnotating) return;
-    
-    const canvas = annotationCanvasRef.current;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setDrawingPath(prev => [...prev, { x, y }]);
-  };
-
-  const handleCanvasMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isDrawing || !isAnnotating) return;
-    
-    setIsDrawing(false);
-    
-    if (drawingPath.length > 0) {
-      const newAnnotation = {
-        x: drawingPath[0].x,
-        y: drawingPath[0].y,
-        type: drawingMode,
-        data: drawingMode === 'line' ? JSON.stringify(drawingPath) : undefined
-      };
-      
-      setAnnotations(prev => [...prev, newAnnotation]);
-      setDrawingPath([]);
-    }
-  };
-
-  const drawAnnotation = (ctx: CanvasRenderingContext2D, annotation: any) => {
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 3;
-    ctx.fillStyle = '#ff0000';
-    
-    switch (annotation.type) {
-      case 'circle':
-        ctx.beginPath();
-        ctx.arc(annotation.x, annotation.y, 20, 0, 2 * Math.PI);
-        ctx.stroke();
-        break;
-      case 'arrow':
-        // Desenhar uma seta simples
-        ctx.beginPath();
-        ctx.moveTo(annotation.x - 10, annotation.y);
-        ctx.lineTo(annotation.x + 10, annotation.y);
-        ctx.moveTo(annotation.x + 5, annotation.y - 5);
-        ctx.lineTo(annotation.x + 10, annotation.y);
-        ctx.lineTo(annotation.x + 5, annotation.y + 5);
-        ctx.stroke();
-        break;
-      case 'line':
-        if (annotation.data) {
-          const path = JSON.parse(annotation.data);
-          if (path.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            for (let i = 1; i < path.length; i++) {
-              ctx.lineTo(path[i].x, path[i].y);
-            }
-            ctx.stroke();
-          }
-        }
-        break;
-    }
-  };
-
-  const clearAnnotations = () => {
-    setAnnotations([]);
-  };
-
-  const saveAnnotatedPhoto = () => {
-    console.log('Salvando foto anotada...');
-    if (annotationCanvasRef.current && currentPhoto) {
-      const canvas = annotationCanvasRef.current;
-      const photoData = canvas.toDataURL('image/jpeg', 0.8);
-      console.log('Foto anotada salva, tamanho:', photoData.length);
-      onPhotoCapture(photoData);
-      setIsAnnotating(false);
-      setCurrentPhoto(null);
-      setAnnotations([]);
-    } else {
-      console.error('Canvas de anotação ou foto atual não encontrado');
-    }
-  };
-
-  const cancelAnnotation = () => {
-    setIsAnnotating(false);
-    setCurrentPhoto(null);
-    setAnnotations([]);
+    // Limpar o input para permitir selecionar o mesmo arquivo novamente
+    event.target.value = '';
   };
 
   const viewPhoto = (photo: string) => {
@@ -328,122 +188,6 @@ export default function PhotoCapture({
             >
               <Camera className="h-6 w-6" />
             </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isAnnotating && currentPhoto) {
-    return (
-      <div 
-        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-      >
-        <div className="relative w-full h-full max-w-4xl max-h-4xl p-4">
-          <div className="bg-white rounded-lg p-4 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Editar {label}</h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDrawingMode('circle');
-                  }}
-                  className={drawingMode === 'circle' ? 'bg-violet-100' : ''}
-                  type="button"
-                >
-                  <PenTool className="h-4 w-4 mr-1" />
-                  Círculo
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDrawingMode('arrow');
-                  }}
-                  className={drawingMode === 'arrow' ? 'bg-violet-100' : ''}
-                  type="button"
-                >
-                  Seta
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDrawingMode('line');
-                  }}
-                  className={drawingMode === 'line' ? 'bg-violet-100' : ''}
-                  type="button"
-                >
-                  Linha
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    clearAnnotations();
-                  }}
-                  type="button"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex-1 overflow-auto">
-              <canvas
-                ref={annotationCanvasRef}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseUp={handleCanvasMouseUp}
-                className="border border-gray-300 cursor-crosshair max-w-full max-h-full"
-                style={{ touchAction: 'none' }}
-              />
-            </div>
-            
-            <div className="flex gap-2 mt-4">
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  cancelAnnotation();
-                }}
-                variant="outline"
-                className="flex-1"
-                type="button"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  saveAnnotatedPhoto();
-                }}
-                className="flex-1 bg-violet-600 hover:bg-violet-700"
-                type="button"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Salvar Foto
-              </Button>
-            </div>
           </div>
         </div>
       </div>

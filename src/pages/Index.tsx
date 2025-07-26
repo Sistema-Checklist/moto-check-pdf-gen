@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import SignaturePad from "@/components/SignaturePad";
 import PhotoCapture from "@/components/PhotoCapture";
 import PhotoSection from "@/components/PhotoSection";
+import InstallPrompt from "@/components/InstallPrompt";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -81,27 +82,21 @@ const tipoManutencaoOptions = [
 
 // Hook para pop-up de instalação PWA
 function usePWAPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowPrompt(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    // Show prompt after 3 seconds on mobile
+    const timer = setTimeout(() => {
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        setShowPrompt(true);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  const promptInstall = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => setShowPrompt(false));
-    }
-  };
-
-  return { showPrompt, promptInstall, setShowPrompt };
+  return { showPrompt, setShowPrompt };
 }
 
 export default function Index() {
@@ -827,17 +822,9 @@ Por favor, entre em contato para confirmar o agendamento.`;
         </div>
 
         {/* Pop-up de instalação PWA */}
-        {pwa.showPrompt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-lg p-8 max-w-xs w-full flex flex-col items-center">
-              <img src="/android-icon.svg" alt="App Icon" className="w-16 h-16 mb-4" />
-              <h2 className="text-xl font-bold text-violet-700 mb-2">Instale o App!</h2>
-              <p className="text-gray-600 text-center mb-4">Adicione o CheckSystem à tela inicial para acessar mais rápido e usar como um app.</p>
-              <Button className="w-full mb-2" onClick={pwa.promptInstall}>Instalar</Button>
-              <Button variant="outline" className="w-full" onClick={() => pwa.setShowPrompt(false)}>Agora não</Button>
-            </div>
-          </div>
-        )}
+              {pwa.showPrompt && (
+        <InstallPrompt onClose={() => pwa.setShowPrompt(false)} />
+      )}
 
         {/* Abas responsivas */}
         <nav className="bg-white rounded-xl p-2 mb-6 shadow-sm border border-violet-100">

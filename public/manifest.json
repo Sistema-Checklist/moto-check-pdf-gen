@@ -1,22 +1,82 @@
 {
   "name": "CheckSystem - Sistema eficiente para checklists de motos",
   "short_name": "CheckSystem",
-  "description": "Sistema eficiente para checklists de motos",
+  "description": "Sistema completo para gerenciamento de checklists de motos, com captura de fotos, assinaturas digitais e geração de relatórios em PDF",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#7c3aed",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "pt-BR",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "/android-icon.svg",
-      "sizes": "512x512",
+      "src": "/icons/icon-16x16.svg",
+      "sizes": "16x16",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-32x32.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.svg",
-      "sizes": "200x200",
-      "type": "image/svg+xml"
+      "src": "/icons/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Checklist",
+      "short_name": "Checklist",
+      "description": "Criar um novo checklist de vistoria",
+      "url": "/?tab=checklist",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Gerenciar Locatários",
+      "short_name": "Locatários",
+      "description": "Gerenciar lista de locatários",
+      "url": "/?tab=locatarios",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.svg",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tela principal do CheckSystem"
+    },
+    {
+      "src": "/screenshots/mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Checklist no mobile"
     }
   ]
 } 
