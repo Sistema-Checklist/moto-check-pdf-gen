@@ -7,6 +7,7 @@ interface PhotoSectionProps {
   photos: string[];
   onPhotoCapture: (photoData: string) => void;
   onPhotoSelect: (photoData: string) => void;
+  onPhotoDelete?: (index: number) => void;
   placeholder: string;
 }
 
@@ -15,6 +16,7 @@ export default function PhotoSection({
   photos, 
   onPhotoCapture, 
   onPhotoSelect, 
+  onPhotoDelete,
   placeholder 
 }: PhotoSectionProps) {
   return (
@@ -27,6 +29,8 @@ export default function PhotoSection({
       <PhotoCapture
         onPhotoCapture={onPhotoCapture}
         onPhotoSelect={onPhotoSelect}
+        onPhotoDelete={onPhotoDelete}
+        photos={photos}
         currentCount={photos.length}
         label={title}
       />

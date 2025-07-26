@@ -79,6 +79,31 @@ const tipoManutencaoOptions = [
   { value: "troca_oleo", label: "Troca de Óleo" },
 ];
 
+// Hook para pop-up de instalação PWA
+function usePWAPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowPrompt(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const promptInstall = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => setShowPrompt(false));
+    }
+  };
+
+  return { showPrompt, promptInstall, setShowPrompt };
+}
+
 export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -144,6 +169,7 @@ export default function Index() {
   const [fotosKmAtual, setFotosKmAtual] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const pwa = usePWAPrompt();
 
   useEffect(() => {
     checkAuth();
@@ -524,11 +550,20 @@ Por favor, entre em contato para confirmar o agendamento.`;
 
   // Funções para gerenciar fotos
   const handlePhotoCapture = (photoData: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => [...prev, photoData]);
+    console.log('handlePhotoCapture chamado, tamanho da foto:', photoData.length);
+    setter(prev => {
+      const newPhotos = [...prev, photoData];
+      console.log('Novo array de fotos, total:', newPhotos.length);
+      return newPhotos;
+    });
   };
 
   const handlePhotoSelect = (photoData: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter(prev => [...prev, photoData]);
+  };
+
+  const handlePhotoDelete = (index: number, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setter(prev => prev.filter((_, i) => i !== index));
   };
 
   // Função para gerar PDF do checklist
@@ -762,39 +797,48 @@ Por favor, entre em contato para confirmar o agendamento.`;
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50">
       <div className="container mx-auto p-4 max-w-4xl">
         {/* Header com logout */}
-        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-violet-100">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-3">
-                {userProfile?.company_logo && (
-                  <img 
-                    src={userProfile.company_logo} 
-                    alt="Logo da empresa" 
-                    className="w-8 h-8 rounded object-cover"
-                  />
-                )}
-                <h1 className="text-2xl font-bold text-violet-700">
-                  {userProfile?.company_name || 'CheckSystem'}
-                </h1>
-              </div>
-              <p className="text-sm text-gray-600">Sistema eficiente para checklists de motos</p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-              <span className="text-sm text-gray-600 hidden sm:block">Bem-Vindo {userProfile?.company_name || 'CheckSystem'}</span>
-              <div className="flex gap-2">
-                {user?.email === 'kauankg@hotmail.com' && (
-                  <Button variant="outline" onClick={() => navigate('/admin')} size="sm" className="text-xs">
-                    Admin
-                  </Button>
-                )}
-                <Button variant="outline" onClick={handleLogout} size="sm" className="text-xs">
-                  Sair
+        <div className="bg-white rounded-xl p-6 mb-6 shadow-sm border border-violet-100">
+          <div className="flex flex-col items-center justify-center gap-2">
+            {userProfile?.company_logo && (
+              <img 
+                src={userProfile.company_logo} 
+                alt="Logo da empresa" 
+                className="w-20 h-20 rounded object-cover mb-2 shadow"
+              />
+            )}
+            <h1 className="text-3xl font-extrabold text-violet-700 text-center">
+              {userProfile?.company_name || 'CheckSystem'}
+            </h1>
+            <p className="text-base text-gray-600 text-center mt-1">Sistema eficiente para checklists de motos</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-4">
+            <span className="text-sm text-gray-600 hidden sm:block">Bem-Vindo {userProfile?.company_name || 'CheckSystem'}</span>
+            <div className="flex gap-2">
+              {user?.email === 'kauankg@hotmail.com' && (
+                <Button variant="outline" onClick={() => navigate('/admin')} size="sm" className="text-xs">
+                  Admin
                 </Button>
-              </div>
+              )}
+              <Button variant="outline" onClick={handleLogout} size="sm" className="text-xs">
+                Sair
+              </Button>
             </div>
           </div>
         </div>
-        
+
+        {/* Pop-up de instalação PWA */}
+        {pwa.showPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-xs w-full flex flex-col items-center">
+              <img src="/android-icon.svg" alt="App Icon" className="w-16 h-16 mb-4" />
+              <h2 className="text-xl font-bold text-violet-700 mb-2">Instale o App!</h2>
+              <p className="text-gray-600 text-center mb-4">Adicione o CheckSystem à tela inicial para acessar mais rápido e usar como um app.</p>
+              <Button className="w-full mb-2" onClick={pwa.promptInstall}>Instalar</Button>
+              <Button variant="outline" className="w-full" onClick={() => pwa.setShowPrompt(false)}>Agora não</Button>
+            </div>
+          </div>
+        )}
+
         {/* Abas responsivas */}
         <nav className="bg-white rounded-xl p-2 mb-6 shadow-sm border border-violet-100">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -879,12 +923,14 @@ Por favor, entre em contato para confirmar o agendamento.`;
                 </div>
                 <div>
                   <Label className="block mb-2 text-sm font-medium text-gray-700">Foto do Painel</Label>
-                  <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosKmAtual)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosKmAtual)}
-                    currentCount={fotosKmAtual.length}
-                    label="KM Atual"
-                  />
+                          <PhotoCapture
+          onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosKmAtual)}
+          onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosKmAtual)}
+          onPhotoDelete={(index) => handlePhotoDelete(index, setFotosKmAtual)}
+          photos={fotosKmAtual}
+          currentCount={fotosKmAtual.length}
+          label="KM Atual"
+        />
                 </div>
               </div>
             </CardContent>
@@ -901,6 +947,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   photos={fotosGerais}
                   onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
                   onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
                   placeholder="Escreva uma observação sobre a foto frontal..."
                 />
                 <PhotoSection
@@ -908,6 +955,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   photos={fotosGerais}
                   onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
                   onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
                   placeholder="Escreva uma observação sobre a foto traseira..."
                 />
                 <PhotoSection
@@ -915,6 +963,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   photos={fotosGerais}
                   onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
                   onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
                   placeholder="Escreva uma observação sobre a foto lateral esquerda..."
                 />
                 <PhotoSection
@@ -922,6 +971,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   photos={fotosGerais}
                   onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
                   onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
                   placeholder="Escreva uma observação sobre a foto lateral direita..."
                 />
               </div>
@@ -941,6 +991,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneus)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneus)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneus)}
+                    photos={fotosPneus}
                     currentCount={fotosPneus.length}
                     label="Pneu Dianteiro"
                   />
@@ -956,6 +1008,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneus)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneus)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneus)}
+                    photos={fotosPneus}
                     currentCount={fotosPneus.length}
                     label="Pneu Traseiro"
                   />
@@ -981,6 +1035,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosFreios)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosFreios)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosFreios)}
+                    photos={fotosFreios}
                     currentCount={fotosFreios.length}
                     label="Sistema de Freio"
                   />
@@ -1006,6 +1062,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
+                    photos={fotosEletrico}
                     currentCount={fotosEletrico.length}
                     label="Farol Dianteiro"
                   />
@@ -1021,6 +1079,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
+                    photos={fotosEletrico}
                     currentCount={fotosEletrico.length}
                     label="Lanterna Traseira"
                   />
@@ -1036,6 +1096,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
+                    photos={fotosEletrico}
                     currentCount={fotosEletrico.length}
                     label="Sistema de Setas"
                   />
@@ -1051,6 +1113,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <PhotoCapture
                     onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
                     onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
+                    photos={fotosEletrico}
                     currentCount={fotosEletrico.length}
                     label="Bateria"
                   />
@@ -1427,11 +1491,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
               <div className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <CalendarIcon className="text-violet-600 w-7 h-7" /> Gerenciar Agendamentos
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" className="text-violet-600 flex items-center gap-1 font-semibold" onClick={() => setShowAgendamentoForm(true)}>
+              <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+                <Button variant="ghost" className="text-violet-600 flex items-center gap-1 font-semibold w-full md:w-auto" onClick={() => setShowAgendamentoForm(true)}>
                   <PlusIcon className="w-5 h-5" /> Novo Agendamento Interno
                 </Button>
-                <Button variant="outline" onClick={handleGerarLinkPublico}>
+                <Button variant="outline" className="w-full md:w-auto" onClick={handleGerarLinkPublico}>
                   Copiar Link Público
                 </Button>
               </div>

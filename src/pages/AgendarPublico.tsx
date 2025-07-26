@@ -166,7 +166,7 @@ export default function AgendarPublico() {
       // 6. ABRIR WHATSAPP AUTOMATICAMENTE
       if (whatsappNumber) {
         // Formatar mensagem para WhatsApp
-        const mensagem = `🛵 *NOVO AGENDAMENTO DE MANUTENÇÃO*
+        const mensagem = `🛵 *Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
 
 👤 *Nome:* ${form.nome}
 📱 *Telefone:* ${form.telefone}
@@ -174,10 +174,7 @@ export default function AgendarPublico() {
 🔧 *Tipo:* ${tipoLabel}
 ${form.data ? `📅 *Data:* ${form.data}` : ''}
 ${form.horario ? `⏰ *Horário:* ${form.horario}` : ''}
-${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
-
-✅ *Agendamento solicitado com sucesso!*
-📞 *Entre em contato para confirmar.*`;
+${form.obs ? `📝 *Observações:* ${form.obs}` : ''}`;
 
         console.log('Mensagem formatada para WhatsApp:', mensagem);
         
@@ -341,7 +338,7 @@ ${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
         console.log('Usando número padrão:', numeroPadrao);
         
         // Formatar mensagem para WhatsApp
-        const mensagem = `🛵 *NOVO AGENDAMENTO DE MANUTENÇÃO*
+        const mensagem = `🛵 *Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
 
 👤 *Nome:* ${form.nome}
 📱 *Telefone:* ${form.telefone}
@@ -349,10 +346,7 @@ ${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
 🔧 *Tipo:* ${tipoLabel}
 ${form.data ? `📅 *Data:* ${form.data}` : ''}
 ${form.horario ? `⏰ *Horário:* ${form.horario}` : ''}
-${form.obs ? `📝 *Observações:* ${form.obs}` : ''}
-
-✅ *Agendamento solicitado com sucesso!*
-📞 *Entre em contato para confirmar.*`;
+${form.obs ? `📝 *Observações:* ${form.obs}` : ''}`;
 
         console.log('Mensagem formatada para WhatsApp:', mensagem);
         

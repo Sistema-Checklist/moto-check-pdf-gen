@@ -45,6 +45,7 @@ export default function SignaturePad({ onSave, onClear, label }: SignaturePadPro
     const handleMouseUp = () => {
       setIsDrawing(false);
       setHasSignature(true);
+      saveSignature();
     };
 
     // Eventos de touch
@@ -70,6 +71,7 @@ export default function SignaturePad({ onSave, onClear, label }: SignaturePadPro
       e.preventDefault();
       setIsDrawing(false);
       setHasSignature(true);
+      saveSignature();
     };
 
     // Adicionar event listeners
@@ -92,7 +94,15 @@ export default function SignaturePad({ onSave, onClear, label }: SignaturePadPro
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
+    // eslint-disable-next-line
   }, [isDrawing]);
+
+  const saveSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const signatureData = canvas.toDataURL('image/png');
+    onSave(signatureData);
+  };
 
   const handleClear = () => {
     const canvas = canvasRef.current;
@@ -104,14 +114,6 @@ export default function SignaturePad({ onSave, onClear, label }: SignaturePadPro
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasSignature(false);
     onClear();
-  };
-
-  const handleSave = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !hasSignature) return;
-
-    const signatureData = canvas.toDataURL('image/png');
-    onSave(signatureData);
   };
 
   return (
@@ -133,16 +135,6 @@ export default function SignaturePad({ onSave, onClear, label }: SignaturePadPro
           className="flex-1"
         >
           Limpar
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={!hasSignature}
-          className="flex-1"
-        >
-          Salvar
         </Button>
       </div>
     </div>
