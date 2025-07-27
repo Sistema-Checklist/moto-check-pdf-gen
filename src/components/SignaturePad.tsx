@@ -12,105 +12,105 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
-
-  // Restaurar assinatura se existir
-  useEffect(() => {
-    if (value && canvasRef.current && isInitialized) {
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      if (context) {
-        const img = new Image();
-        img.onload = () => {
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(img, 0, 0, canvas.width, canvas.height);
-          setHasSignature(true);
-        };
-        img.src = value;
-      }
-    }
-  }, [value, isInitialized]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || isInitialized) return;
+    if (!canvas) return;
+
+    // Configurar canvas com proporção adequada
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
 
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    // Configurar tamanho fixo do canvas
-    canvas.width = 400;
-    canvas.height = 150;
+    // Escalar o contexto para alta resolução
+    context.scale(dpr, dpr);
     
     // Preencher com fundo branco
     context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillRect(0, 0, rect.width, rect.height);
     
+    // Configurar estilo do desenho
     context.strokeStyle = '#000000';
-    context.lineWidth = 3;
+    context.lineWidth = 2;
     context.lineCap = 'round';
     context.lineJoin = 'round';
 
-    setCtx(context);
+    // Funções de desenho
+    let drawing = false;
+
+    const startDrawing = (x: number, y: number) => {
+      drawing = true;
+      context.beginPath();
+      context.moveTo(x, y);
+      setIsDrawing(true);
+    };
+
+    const draw = (x: number, y: number) => {
+      if (!drawing) return;
+      context.lineTo(x, y);
+      context.stroke();
+      setHasSignature(true);
+    };
+
+    const stopDrawing = () => {
+      if (!drawing) return;
+      drawing = false;
+      setIsDrawing(false);
+      
+      // Salvar automaticamente quando parar de desenhar
+      const signatureData = canvas.toDataURL('image/png');
+      onSave(signatureData);
+    };
 
     // Eventos de mouse
     const handleMouseDown = (e: MouseEvent) => {
-      setIsDrawing(true);
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      context.beginPath();
-      context.moveTo(x, y);
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      startDrawing(x, y);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDrawing) return;
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      context.lineTo(x, y);
-      context.stroke();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      draw(x, y);
     };
 
     const handleMouseUp = () => {
-      if (isDrawing) {
-        setIsDrawing(false);
-        setHasSignature(true);
-        saveSignature();
-      }
+      stopDrawing();
     };
 
     // Eventos de touch
     const handleTouchStart = (e: TouchEvent) => {
       e.preventDefault();
-      setIsDrawing(true);
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      context.beginPath();
-      context.moveTo(x, y);
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      startDrawing(x, y);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       e.preventDefault();
-      if (!isDrawing) return;
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      context.lineTo(x, y);
-      context.stroke();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      draw(x, y);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
-      if (isDrawing) {
-        setIsDrawing(false);
-        setHasSignature(true);
-        saveSignature();
-      }
+      stopDrawing();
     };
 
     // Adicionar event listeners
@@ -119,11 +119,9 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseUp);
 
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', handleTouchEnd);
-
-    setIsInitialized(true);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
@@ -135,20 +133,40 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isInitialized]); // Removida dependência isDrawing
+  }, []); // Executar apenas uma vez
 
-  const saveSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const signatureData = canvas.toDataURL('image/png');
-    onSave(signatureData);
-  };
+  // Restaurar assinatura se existir
+  useEffect(() => {
+    if (value && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      if (context) {
+        const img = new Image();
+        img.onload = () => {
+          const rect = canvas.getBoundingClientRect();
+          context.clearRect(0, 0, rect.width, rect.height);
+          context.drawImage(img, 0, 0, rect.width, rect.height);
+          setHasSignature(true);
+        };
+        img.src = value;
+      }
+    }
+  }, [value]);
 
   const handleClear = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !ctx) return;
+    if (!canvas) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const rect = canvas.getBoundingClientRect();
+    
+    // Limpar e recriar fundo branco
+    context.clearRect(0, 0, rect.width, rect.height);
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, rect.width, rect.height);
+    
     setHasSignature(false);
     onClear();
   };
@@ -156,7 +174,7 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className={`border-2 border-dashed rounded-lg p-2 bg-white transition-all duration-200 ${
+      <div className={`border-2 border-dashed rounded-lg p-4 bg-white transition-all duration-200 ${
         hasSignature 
           ? 'border-green-300 bg-green-50' 
           : isDrawing
@@ -165,17 +183,26 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       }`}>
         <canvas
           ref={canvasRef}
-          className="w-full h-32 cursor-crosshair touch-none bg-white rounded border"
-          style={{ touchAction: 'none' }}
+          className="w-full h-32 cursor-crosshair touch-none bg-white rounded border border-gray-200"
+          style={{ 
+            touchAction: 'none',
+            width: '100%',
+            height: '128px'
+          }}
         />
         {hasSignature && (
           <div className="mt-2 text-center">
             <span className="text-xs text-green-600 font-medium">✓ Assinatura salva</span>
           </div>
         )}
-        {isDrawing && !hasSignature && (
+        {isDrawing && (
           <div className="mt-2 text-center">
             <span className="text-xs text-blue-600 font-medium">Desenhando...</span>
+          </div>
+        )}
+        {!hasSignature && !isDrawing && (
+          <div className="mt-2 text-center">
+            <span className="text-xs text-gray-500">Toque e arraste para assinar</span>
           </div>
         )}
       </div>
@@ -193,4 +220,4 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       </div>
     </div>
   );
-} 
+}
