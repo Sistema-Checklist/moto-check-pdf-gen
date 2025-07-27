@@ -166,7 +166,7 @@ export default function AgendarPublico() {
       // 6. ABRIR WHATSAPP AUTOMATICAMENTE
       if (whatsappNumber) {
         // Formatar mensagem para WhatsApp
-        const mensagem = `🛵 *Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
+        const mensagem = `*Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
 
 👤 *Nome:* ${form.nome}
 📱 *Telefone:* ${form.telefone}
@@ -338,7 +338,7 @@ ${form.obs ? `📝 *Observações:* ${form.obs}` : ''}`;
         console.log('Usando número padrão:', numeroPadrao);
         
         // Formatar mensagem para WhatsApp
-        const mensagem = `🛵 *Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
+        const mensagem = `*Olá, estou abrindo uma nova solicitação de manutenção, fico no seu aguardo*
 
 👤 *Nome:* ${form.nome}
 📱 *Telefone:* ${form.telefone}

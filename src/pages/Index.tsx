@@ -108,6 +108,15 @@ export default function Index() {
   const [locatarios, setLocatarios] = useState(mockLocatarios);
   const [novoLoc, setNovoLoc] = useState({ nome: "", rg: "", telefone: "" });
   const [formState, setFormState] = useState<Record<string, string>>({});
+  // Função para obter a data atual no formato YYYY-MM-DD
+  const getDataAtual = () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
   const [clientData, setClientData] = useState({
     modelo: "",
     placa: "",
@@ -118,7 +127,7 @@ export default function Index() {
     motor: "",
     cliente: "",
     rg: "",
-    data: "",
+    data: getDataAtual(), // Data atual no formato YYYY-MM-DD
   });
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showMotoForm, setShowMotoForm] = useState(false);
@@ -153,12 +162,21 @@ export default function Index() {
 
   const [vistoriadorSignature, setVistoriadorSignature] = useState("");
   const [locatarioSignature, setLocatarioSignature] = useState("");
-  const [fotosGerais, setFotosGerais] = useState<string[]>([]);
-  const [fotosPneus, setFotosPneus] = useState<string[]>([]);
+  const [fotosGeraisFrontal, setFotosGeraisFrontal] = useState<string[]>([]);
+  const [fotosGeraisTraseira, setFotosGeraisTraseira] = useState<string[]>([]);
+  const [fotosGeraisLateralEsquerda, setFotosGeraisLateralEsquerda] = useState<string[]>([]);
+  const [fotosGeraisLateralDireita, setFotosGeraisLateralDireita] = useState<string[]>([]);
+  const [fotosPneuDianteiro, setFotosPneuDianteiro] = useState<string[]>([]);
+  const [fotosPneuTraseiro, setFotosPneuTraseiro] = useState<string[]>([]);
   const [fotosFreios, setFotosFreios] = useState<string[]>([]);
-  const [fotosEletrico, setFotosEletrico] = useState<string[]>([]);
-  const [fotosMecanica, setFotosMecanica] = useState<string[]>([]);
-  const [fotosSuspensao, setFotosSuspensao] = useState<string[]>([]);
+  const [fotosFarolDianteiro, setFotosFarolDianteiro] = useState<string[]>([]);
+  const [fotosLanternaTraseira, setFotosLanternaTraseira] = useState<string[]>([]);
+  const [fotosSistemaSetas, setFotosSistemaSetas] = useState<string[]>([]);
+  const [fotosSistemaBuzina, setFotosSistemaBuzina] = useState<string[]>([]);
+  const [fotosMotor, setFotosMotor] = useState<string[]>([]);
+  const [fotosTransmissao, setFotosTransmissao] = useState<string[]>([]);
+  const [fotosSuspensaoDianteira, setFotosSuspensaoDianteira] = useState<string[]>([]);
+  const [fotosSuspensaoTraseira, setFotosSuspensaoTraseira] = useState<string[]>([]);
   const [fotosCarroceria, setFotosCarroceria] = useState<string[]>([]);
   const [fotosObservacoesFinais, setFotosObservacoesFinais] = useState<string[]>([]);
   const [fotosKmAtual, setFotosKmAtual] = useState<string[]>([]);
@@ -168,6 +186,15 @@ export default function Index() {
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Definir data atual sempre que o componente for montado
+  useEffect(() => {
+    const dataAtual = getDataAtual();
+    setClientData(prev => ({
+      ...prev,
+      data: dataAtual
+    }));
   }, []);
 
   useEffect(() => {
@@ -360,10 +387,13 @@ export default function Index() {
     
     // Preencher dados do checklist
     const loc = locatarios[idx];
+    const dataAtual = getDataAtual(); // Data atual
+    
     setClientData((prev) => ({
       ...prev,
       cliente: loc.nome,
       rg: loc.rg,
+      data: dataAtual, // Sempre usar a data atual
     }));
     
     // Buscar moto vinculada
@@ -545,20 +575,41 @@ Por favor, entre em contato para confirmar o agendamento.`;
 
   // Funções para gerenciar fotos
   const handlePhotoCapture = (photoData: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    console.log('handlePhotoCapture chamado, tamanho da foto:', photoData.length);
+    console.log('=== handlePhotoCapture chamado ===');
+    console.log('Tamanho da foto:', photoData.length);
+    console.log('Primeiros 100 caracteres da foto:', photoData.substring(0, 100));
+    console.log('Setter recebido:', setter);
+    
     setter(prev => {
       const newPhotos = [...prev, photoData];
-      console.log('Novo array de fotos, total:', newPhotos.length);
+      console.log('Novo array de fotos criado, total:', newPhotos.length);
+      console.log('Fotos anteriores:', prev.length);
+      console.log('Nova foto adicionada com sucesso');
       return newPhotos;
     });
   };
 
   const handlePhotoSelect = (photoData: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => [...prev, photoData]);
+    console.log('=== handlePhotoSelect chamado ===');
+    console.log('Tamanho da foto da galeria:', photoData.length);
+    console.log('Primeiros 100 caracteres da foto:', photoData.substring(0, 100));
+    
+    setter(prev => {
+      const newPhotos = [...prev, photoData];
+      console.log('Nova foto da galeria adicionada, total:', newPhotos.length);
+      return newPhotos;
+    });
   };
 
   const handlePhotoDelete = (index: number, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setter(prev => prev.filter((_, i) => i !== index));
+    console.log('=== handlePhotoDelete chamado ===');
+    console.log('Índice da foto a ser deletada:', index);
+    
+    setter(prev => {
+      const newPhotos = prev.filter((_, i) => i !== index);
+      console.log('Foto deletada, novo total:', newPhotos.length);
+      return newPhotos;
+    });
   };
 
   // Função para gerar PDF do checklist
@@ -581,11 +632,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
       const companyLogo = userProfile?.company_logo || '';
       
       header.innerHTML = `
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #7c3aed; padding-bottom: 10px;">
-          ${companyLogo ? `<img src="${companyLogo}" style="width: 100px; height: 100px; margin: 0 auto 15px; display: block; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />` : ''}
-          <h1 style="color: #7c3aed; margin: 0; font-size: 32px; font-weight: 800; text-shadow: 0 2px 4px rgba(124, 58, 237, 0.1); letter-spacing: 1px;">${companyName}</h1>
-          <p style="color: #666; margin: 8px 0; font-size: 16px; font-weight: 500;">Sistema eficiente para checklists de motos</p>
-          <h2 style="color: #333; margin: 15px 0; font-size: 22px; font-weight: 700; border-top: 2px solid #e5e7eb; padding-top: 10px;">Relatório de Vistoria</h2>
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #7c3aed; padding-bottom: 20px;">
+          ${companyLogo ? `<img src="${companyLogo}" style="width: 120px; height: 120px; margin: 0 auto 20px; display: block; object-fit: contain; border-radius: 15px; box-shadow: 0 6px 12px rgba(0,0,0,0.15);" />` : ''}
+          <h1 style="color: #7c3aed; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 0 3px 6px rgba(124, 58, 237, 0.2); letter-spacing: 2px;">${companyName}</h1>
+          <p style="color: #666; margin: 10px 0; font-size: 18px; font-weight: 600;">Sistema eficiente para checklists de motos</p>
+          <h2 style="color: #333; margin: 20px 0; font-size: 26px; font-weight: 800; border-top: 2px solid #e5e7eb; padding-top: 15px;">Relatório de Vistoria</h2>
         </div>
       `;
       pdfContent.appendChild(header);
@@ -593,151 +644,214 @@ Por favor, entre em contato para confirmar o agendamento.`;
       // Dados da moto e cliente
       const motoData = document.createElement('div');
       motoData.innerHTML = `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Dados da Moto e Cliente</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold; width: 30%;">Modelo:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.modelo || 'Não informado'}</td>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold; width: 30%;">Placa:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.placa || 'Não informado'}</td>
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Dados da Moto e Cliente</h3>
+          <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 25%; background-color: #f1f5f9;">Modelo:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.modelo || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 25%; background-color: #f1f5f9;">Placa:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.placa || 'Não informado'}</td>
             </tr>
             <tr>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Cor:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.cor || 'Não informado'}</td>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">KM:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.km || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Cor:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.cor || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">KM:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.km || 'Não informado'}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">KM Atual:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.kmAtual || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Chassi:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.chassi || 'Não informado'}</td>
             </tr>
             <tr>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Chassi:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.chassi || 'Não informado'}</td>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Motor:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.motor || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Motor:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.motor || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Cliente:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.cliente || 'Não informado'}</td>
             </tr>
-            <tr>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Cliente:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.cliente || 'Não informado'}</td>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">RG:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;">${clientData.rg || 'Não informado'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px; border: 1px solid #ddd; font-weight: bold;">Data da Vistoria:</td>
-              <td style="padding: 5px; border: 1px solid #ddd;" colspan="3">${clientData.data || 'Não informado'}</td>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">RG:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.rg || 'Não informado'}</td>
+              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Data da Vistoria:</td>
+              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.data || 'Não informado'}</td>
             </tr>
           </table>
         </div>
       `;
       pdfContent.appendChild(motoData);
 
+      // Função para obter o valor selecionado de um radio group
+      const getSelectedValue = (name: string) => {
+        const selected = document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement;
+        if (!selected) return '';
+        
+        switch (selected.value) {
+          case 'bom': return '✅ Bom';
+          case 'regular': return '⚠️ Regular';
+          case 'necessita_troca': return '❌ Necessita Troca';
+          default: return '';
+        }
+      };
+
       // Checklist de condições
       const checklistData = document.createElement('div');
       checklistData.innerHTML = `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Checklist de Condições</h3>
-          <table style="width: 100%; border-collapse: collapse;">
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Checklist de Condições</h3>
+          <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <tr style="background-color: #7c3aed; color: white;">
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700;">Item</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: 700;">Condição</th>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Pneu Dianteiro</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('pneu_dianteiro')}</td>
+            </tr>
             <tr style="background-color: #f8f9fa;">
-              <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Item</th>
-              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Bom</th>
-              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Regular</th>
-              <th style="padding: 8px; border: 1px solid #ddd; text-align: center; width: 25%;">Necessita Troca</th>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Pneu Traseiro</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('pneu_traseiro')}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pneu Dianteiro</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_dianteiro"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Freio</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('freio')}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Farol</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('farol')}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pneu Traseiro</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="pneu_traseiro"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Lanterna</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('lanterna')}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Setas</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('setas')}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Freio</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="freio"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Bateria</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('bateria')}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Motor</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('mecanica_motor')}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Farol</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="farol"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Mecânica - Transmissão</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('mecanica_transmissao')}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Suspensão Dianteira</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('suspensao_dianteira')}</td>
             </tr>
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Lanterna</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="lanterna"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Suspensão Traseira</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('suspensao_traseira')}</td>
             </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Setas</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="setas"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Bateria</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="bateria"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Motor</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_motor"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Transmissão</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="mecanica_transmissao"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Suspensão Dianteira</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_dianteira"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Suspensão Traseira</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="suspensao_traseira"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Carroceria, Tanque e Banco</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="bom"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="regular"]:checked') ? '✓' : ''}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${document.querySelector('input[name="carroceria_tanque_banco"][value="necessita_troca"]:checked') ? '✓' : ''}</td>
+            <tr style="background-color: #f8f9fa;">
+              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Carroceria, Tanque e Banco</td>
+              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('carroceria_tanque_banco')}</td>
             </tr>
           </table>
         </div>
       `;
       pdfContent.appendChild(checklistData);
 
+      // Seção de Fotos
+      const addPhotoSection = (title: string, photos: string[]) => {
+        if (photos.length === 0) return '';
+        
+        let photoHTML = `
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #7c3aed; margin-bottom: 10px; font-size: 14px; font-weight: 600;">${title}</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+        `;
+        
+        photos.forEach((photo, index) => {
+          photoHTML += `
+            <div style="text-align: center;">
+              <img src="${photo}" style="width: 100%; max-width: 150px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+              <p style="margin-top: 5px; font-size: 10px; color: #666;">Foto ${index + 1}</p>
+            </div>
+          `;
+        });
+        
+        photoHTML += `
+            </div>
+          </div>
+        `;
+        
+        return photoHTML;
+      };
+
+      // Adicionar seções de fotos
+      const photosSection = document.createElement('div');
+      photosSection.innerHTML = `
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Fotos da Vistoria</h3>
+          ${addPhotoSection('KM Atual', fotosKmAtual)}
+          ${addPhotoSection('Fotos Gerais - Frontal', fotosGeraisFrontal)}
+          ${addPhotoSection('Fotos Gerais - Traseira', fotosGeraisTraseira)}
+          ${addPhotoSection('Fotos Gerais - Lateral Esquerda', fotosGeraisLateralEsquerda)}
+          ${addPhotoSection('Fotos Gerais - Lateral Direita', fotosGeraisLateralDireita)}
+          ${addPhotoSection('Pneu Dianteiro', fotosPneuDianteiro)}
+          ${addPhotoSection('Pneu Traseiro', fotosPneuTraseiro)}
+          ${addPhotoSection('Freios', fotosFreios)}
+          ${addPhotoSection('Farol Dianteiro', fotosFarolDianteiro)}
+          ${addPhotoSection('Lanterna Traseira', fotosLanternaTraseira)}
+          ${addPhotoSection('Sistema de Setas', fotosSistemaSetas)}
+          ${addPhotoSection('Sistema de Buzina', fotosSistemaBuzina)}
+          ${addPhotoSection('Motor', fotosMotor)}
+          ${addPhotoSection('Transmissão', fotosTransmissao)}
+          ${addPhotoSection('Suspensão Dianteira', fotosSuspensaoDianteira)}
+          ${addPhotoSection('Suspensão Traseira', fotosSuspensaoTraseira)}
+          ${addPhotoSection('Carroceria', fotosCarroceria)}
+          ${addPhotoSection('Observações Finais', fotosObservacoesFinais)}
+        </div>
+      `;
+      pdfContent.appendChild(photosSection);
+
       // Observações finais
       const observacoes = document.querySelector('textarea[placeholder*="observações finais"]') as HTMLTextAreaElement;
       if (observacoes && observacoes.value.trim()) {
         const observacoesData = document.createElement('div');
         observacoesData.innerHTML = `
-          <div style="margin-bottom: 20px;">
-            <h3 style="color: #7c3aed; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">Observações Finais</h3>
-            <div style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 5px;">
-              ${observacoes.value}
+          <div style="margin-bottom: 30px;">
+            <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Observações Finais</h3>
+            <div style="padding: 15px; border: 2px solid #e5e7eb; background-color: #f9fafb; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <p style="margin: 0; line-height: 1.6; color: #374151;">${observacoes.value}</p>
             </div>
           </div>
         `;
         pdfContent.appendChild(observacoesData);
       }
 
+      // Assinaturas
+      const assinaturasSection = document.createElement('div');
+      assinaturasSection.innerHTML = `
+        <div style="margin-bottom: 30px;">
+          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Assinaturas</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div style="text-align: center;">
+              <h4 style="color: #374151; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Assinatura do Vistoriador</h4>
+              ${vistoriadorSignature ? `<img src="${vistoriadorSignature}" style="width: 200px; height: 80px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; background-color: white;" />` : '<div style="width: 200px; height: 80px; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">Sem assinatura</div>'}
+            </div>
+            <div style="text-align: center;">
+              <h4 style="color: #374151; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Assinatura do Locatário</h4>
+              ${locatarioSignature ? `<img src="${locatarioSignature}" style="width: 200px; height: 80px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; background-color: white;" />` : '<div style="width: 200px; height: 80px; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">Sem assinatura</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+      pdfContent.appendChild(assinaturasSection);
+
       // Rodapé
       const footer = document.createElement('div');
       footer.innerHTML = `
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 10px;">
-          <p>Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 11px;">
+          <p style="margin: 0 0 5px 0;">Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+          <p style="margin: 0; font-weight: 600;">${companyName} - Sistema de Vistorias</p>
         </div>
       `;
       pdfContent.appendChild(footer);
@@ -750,7 +864,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: false
       });
 
       // Remover do DOM
@@ -893,7 +1008,14 @@ Por favor, entre em contato para confirmar o agendamento.`;
               </div>
               <div className="mb-2">
                 <Label htmlFor="data">Data da Vistoria</Label>
-                <Input name="data" id="data" type="date" value={clientData.data} onChange={handleClientChange} />
+                <Input 
+                  name="data" 
+                  id="data" 
+                  type="date" 
+                  value={clientData.data} 
+                  onChange={handleClientChange}
+                  className="bg-white border-violet-200 focus:border-violet-400"
+                />
               </div>
             </CardContent>
           </Card>
@@ -931,34 +1053,34 @@ Por favor, entre em contato para confirmar o agendamento.`;
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <PhotoSection
                   title="Foto Frontal"
-                  photos={fotosGerais}
-                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
-                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
-                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
+                  photos={fotosGeraisFrontal}
+                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGeraisFrontal)}
+                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGeraisFrontal)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGeraisFrontal)}
                   placeholder="Escreva uma observação sobre a foto frontal..."
                 />
                 <PhotoSection
                   title="Foto Traseira"
-                  photos={fotosGerais}
-                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
-                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
-                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
+                  photos={fotosGeraisTraseira}
+                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGeraisTraseira)}
+                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGeraisTraseira)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGeraisTraseira)}
                   placeholder="Escreva uma observação sobre a foto traseira..."
                 />
                 <PhotoSection
                   title="Foto Lateral Esquerda"
-                  photos={fotosGerais}
-                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
-                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
-                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
+                  photos={fotosGeraisLateralEsquerda}
+                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGeraisLateralEsquerda)}
+                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGeraisLateralEsquerda)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGeraisLateralEsquerda)}
                   placeholder="Escreva uma observação sobre a foto lateral esquerda..."
                 />
                 <PhotoSection
                   title="Foto Lateral Direita"
-                  photos={fotosGerais}
-                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGerais)}
-                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGerais)}
-                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGerais)}
+                  photos={fotosGeraisLateralDireita}
+                  onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosGeraisLateralDireita)}
+                  onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosGeraisLateralDireita)}
+                  onPhotoDelete={(index) => handlePhotoDelete(index, setFotosGeraisLateralDireita)}
                   placeholder="Escreva uma observação sobre a foto lateral direita..."
                 />
               </div>
@@ -976,11 +1098,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Pneu Dianteiro</Label>
                   <RadioGroupCond name="pneu_dianteiro" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneus)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneus)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneus)}
-                    photos={fotosPneus}
-                    currentCount={fotosPneus.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneuDianteiro)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneuDianteiro)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneuDianteiro)}
+                    photos={fotosPneuDianteiro}
+                    currentCount={fotosPneuDianteiro.length}
                     label="Pneu Dianteiro"
                   />
                   <div>
@@ -993,11 +1115,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Pneu Traseiro</Label>
                   <RadioGroupCond name="pneu_traseiro" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneus)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneus)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneus)}
-                    photos={fotosPneus}
-                    currentCount={fotosPneus.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosPneuTraseiro)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosPneuTraseiro)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosPneuTraseiro)}
+                    photos={fotosPneuTraseiro}
+                    currentCount={fotosPneuTraseiro.length}
                     label="Pneu Traseiro"
                   />
                   <div>
@@ -1047,11 +1169,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Farol Dianteiro</Label>
                   <RadioGroupCond name="farol" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
-                    photos={fotosEletrico}
-                    currentCount={fotosEletrico.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosFarolDianteiro)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosFarolDianteiro)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosFarolDianteiro)}
+                    photos={fotosFarolDianteiro}
+                    currentCount={fotosFarolDianteiro.length}
                     label="Farol Dianteiro"
                   />
                   <div>
@@ -1064,11 +1186,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Lanterna Traseira</Label>
                   <RadioGroupCond name="lanterna" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
-                    photos={fotosEletrico}
-                    currentCount={fotosEletrico.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosLanternaTraseira)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosLanternaTraseira)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosLanternaTraseira)}
+                    photos={fotosLanternaTraseira}
+                    currentCount={fotosLanternaTraseira.length}
                     label="Lanterna Traseira"
                   />
                   <div>
@@ -1081,11 +1203,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Sistema de Setas (Dianteiro/Traseiro)</Label>
                   <RadioGroupCond name="setas" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
-                    photos={fotosEletrico}
-                    currentCount={fotosEletrico.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSistemaSetas)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSistemaSetas)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosSistemaSetas)}
+                    photos={fotosSistemaSetas}
+                    currentCount={fotosSistemaSetas.length}
                     label="Sistema de Setas"
                   />
                   <div>
@@ -1098,11 +1220,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Bateria</Label>
                   <RadioGroupCond name="bateria" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosEletrico)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosEletrico)}
-                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosEletrico)}
-                    photos={fotosEletrico}
-                    currentCount={fotosEletrico.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSistemaBuzina)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSistemaBuzina)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosSistemaBuzina)}
+                    photos={fotosSistemaBuzina}
+                    currentCount={fotosSistemaBuzina.length}
                     label="Bateria"
                   />
                   <div>
@@ -1125,9 +1247,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Motor</Label>
                   <RadioGroupCond name="mecanica_motor" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosMecanica)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosMecanica)}
-                    currentCount={fotosMecanica.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosMotor)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosMotor)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosMotor)}
+                    photos={fotosMotor}
+                    currentCount={fotosMotor.length}
                     label="Motor"
                   />
                   <div>
@@ -1140,9 +1264,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Transmissão</Label>
                   <RadioGroupCond name="mecanica_transmissao" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosMecanica)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosMecanica)}
-                    currentCount={fotosMecanica.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosTransmissao)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosTransmissao)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosTransmissao)}
+                    photos={fotosTransmissao}
+                    currentCount={fotosTransmissao.length}
                     label="Transmissão"
                   />
                   <div>
@@ -1165,9 +1291,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Suspensão Dianteira</Label>
                   <RadioGroupCond name="suspensao_dianteira" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSuspensao)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSuspensao)}
-                    currentCount={fotosSuspensao.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSuspensaoDianteira)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSuspensaoDianteira)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosSuspensaoDianteira)}
+                    photos={fotosSuspensaoDianteira}
+                    currentCount={fotosSuspensaoDianteira.length}
                     label="Suspensão Dianteira"
                   />
                   <div>
@@ -1180,9 +1308,11 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   <Label className="mb-1 block">Suspensão Traseira</Label>
                   <RadioGroupCond name="suspensao_traseira" />
                   <PhotoCapture
-                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSuspensao)}
-                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSuspensao)}
-                    currentCount={fotosSuspensao.length}
+                    onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosSuspensaoTraseira)}
+                    onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosSuspensaoTraseira)}
+                    onPhotoDelete={(index) => handlePhotoDelete(index, setFotosSuspensaoTraseira)}
+                    photos={fotosSuspensaoTraseira}
+                    currentCount={fotosSuspensaoTraseira.length}
                     label="Suspensão Traseira"
                   />
                   <div>
@@ -1204,11 +1334,18 @@ Por favor, entre em contato para confirmar o agendamento.`;
                 <div className="bg-blue-50 rounded p-4 mb-2">
                   <Label className="mb-1 block">Tanque e Banco</Label>
                   <RadioGroupCond name="carroceria_tanque_banco" />
-                  <div className="flex gap-2 mb-2">
-                    <Button variant="outline" type="button" className="flex-1" disabled>📷 Galeria (0/5)</Button>
-                    <Button variant="outline" type="button" className="flex-1" disabled>📸 Câmera (0/5)</Button>
+                  <div className="mt-3">
+                    <Label className="block mb-2 text-sm font-medium text-gray-700">Fotos</Label>
+                    <PhotoCapture
+                      onPhotoCapture={(photoData) => handlePhotoCapture(photoData, setFotosCarroceria)}
+                      onPhotoSelect={(photoData) => handlePhotoSelect(photoData, setFotosCarroceria)}
+                      onPhotoDelete={(index) => handlePhotoDelete(index, setFotosCarroceria)}
+                      photos={fotosCarroceria}
+                      currentCount={fotosCarroceria.length}
+                      label="Tanque e Banco"
+                    />
                   </div>
-                  <div>
+                  <div className="mt-3">
                     <Label className="block mb-1">Observação</Label>
                     <textarea className="w-full rounded border p-2 text-sm" placeholder="Escreva uma observação sobre tanque e banco..." rows={2}></textarea>
                   </div>
@@ -1257,6 +1394,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   label="Assinatura do Vistoriador"
                   onSave={(signature) => setVistoriadorSignature(signature)}
                   onClear={() => setVistoriadorSignature("")}
+                  value={vistoriadorSignature}
                 />
               </div>
               <div>
@@ -1264,6 +1402,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
                   label="Assinatura do Locatário"
                   onSave={(signature) => setLocatarioSignature(signature)}
                   onClear={() => setLocatarioSignature("")}
+                  value={locatarioSignature}
                 />
               </div>
             </div>
