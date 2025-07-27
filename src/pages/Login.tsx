@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, User, Phone } from "lucide-react";
@@ -14,6 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -29,6 +31,60 @@ export default function Login() {
   });
 
   const navigate = useNavigate();
+
+  // Funções para gerenciar credenciais salvas
+  const saveCredentials = (email: string, password: string) => {
+    try {
+      const credentials = {
+        email,
+        password: btoa(password), // Base64 encoding simples
+        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 dias
+      };
+      localStorage.setItem('checkSystem_savedCredentials', JSON.stringify(credentials));
+      localStorage.setItem('checkSystem_rememberMe', 'true');
+    } catch (error) {
+      console.error('Erro ao salvar credenciais:', error);
+    }
+  };
+
+  const loadSavedCredentials = () => {
+    try {
+      const savedRememberMe = localStorage.getItem('checkSystem_rememberMe');
+      if (savedRememberMe === 'true') {
+        setRememberMe(true);
+        
+        const savedCredentials = localStorage.getItem('checkSystem_savedCredentials');
+        if (savedCredentials) {
+          const credentials = JSON.parse(savedCredentials);
+          
+          // Verificar se não expirou
+          if (credentials.expiry && Date.now() < credentials.expiry) {
+            setLoginForm({
+              email: credentials.email || "",
+              password: credentials.password ? atob(credentials.password) : ""
+            });
+          } else {
+            // Limpar credenciais expiradas
+            clearSavedCredentials();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar credenciais:', error);
+      clearSavedCredentials();
+    }
+  };
+
+  const clearSavedCredentials = () => {
+    localStorage.removeItem('checkSystem_savedCredentials');
+    localStorage.removeItem('checkSystem_rememberMe');
+    setRememberMe(false);
+  };
+
+  // Carregar credenciais ao montar o componente
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginForm({ ...loginForm, [e.target.name]: e.target.value });
@@ -216,6 +272,13 @@ export default function Login() {
           return;
         }
 
+        // Salvar credenciais se o checkbox estiver marcado
+        if (rememberMe) {
+          saveCredentials(loginForm.email, loginForm.password);
+        } else {
+          clearSavedCredentials();
+        }
+
         navigate('/');
       }
     } catch (error) {
@@ -359,6 +422,17 @@ export default function Login() {
                       )}
                     </Button>
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                    Salvar acesso
+                  </Label>
                 </div>
 
                 {error && (
