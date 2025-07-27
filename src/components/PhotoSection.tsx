@@ -7,7 +7,7 @@ interface PhotoSectionProps {
   photos: string[];
   onPhotoCapture: (photoData: string) => void;
   onPhotoSelect: (photoData: string) => void;
-  onPhotoDelete?: (index: number) => void;
+  onPhotoDelete: (index: number) => void;
   placeholder: string;
 }
 

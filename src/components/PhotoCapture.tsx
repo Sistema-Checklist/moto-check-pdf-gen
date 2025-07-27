@@ -466,35 +466,28 @@ export default function PhotoCapture({
                     }}
                   />
                   
-                  {/* Botões de ação */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 w-8 p-0 bg-white hover:bg-gray-100"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          viewPhoto(photo);
-                        }}
-                        type="button"
-                      >
-                        <Eye className="h-4 w-4 text-gray-700" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="h-8 w-8 p-0 bg-red-500 hover:bg-red-600"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          deletePhoto(index);
-                        }}
-                        type="button"
-                      >
-                        <Trash2 className="h-4 w-4 text-white" />
-                      </Button>
+                  {/* Botão X no canto superior direito */}
+                  <button
+                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-all duration-200 z-10"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deletePhoto(index);
+                    }}
+                    type="button"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  
+                  {/* Overlay para visualizar */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      viewPhoto(photo);
+                    }}>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Eye className="h-6 w-6 text-white" />
                     </div>
                   </div>
                   

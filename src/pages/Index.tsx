@@ -960,6 +960,46 @@ Por favor, entre em contato para confirmar o agendamento.`;
       // Download do PDF
       pdf.save(fileName);
 
+      // Limpar as condições selecionadas e dados após download
+      setTimeout(() => {
+        // Limpar os radio buttons do DOM
+        const radioButtons = document.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach(radio => {
+          (radio as HTMLInputElement).checked = false;
+        });
+        
+        // Limpar estados
+        setFormState({});
+        setVistoriadorSignature("");
+        setLocatarioSignature("");
+        setFotosGeraisFrontal([]);
+        setFotosGeraisTraseira([]);
+        setFotosGeraisLateralEsquerda([]);
+        setFotosGeraisLateralDireita([]);
+        setFotosPneuDianteiro([]);
+        setFotosPneuTraseiro([]);
+        setFotosFreios([]);
+        setFotosFarolDianteiro([]);
+        setFotosLanternaTraseira([]);
+        setFotosSistemaSetas([]);
+        setFotosSistemaBuzina([]);
+        setFotosMotor([]);
+        setFotosTransmissao([]);
+        setFotosSuspensaoDianteira([]);
+        setFotosSuspensaoTraseira([]);
+        setFotosCarroceria([]);
+        setFotosObservacoesFinais([]);
+        setFotosKmAtual([]);
+        
+        // Limpar observações
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+          (textarea as HTMLTextAreaElement).value = '';
+        });
+        
+        alert('Vistoria gerada com sucesso! Todos os dados foram limpos para uma nova vistoria.');
+      }, 500);
+
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar o PDF. Tente novamente.');
