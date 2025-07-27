@@ -623,336 +623,379 @@ Por favor, entre em contato para confirmar o agendamento.`;
     });
   };
 
-  // Função para gerar PDF do checklist
+  // Função para gerar PDF do checklist otimizada
   const handleGeneratePDF = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Criar um elemento temporário para o PDF
-      const pdfContent = document.createElement('div');
-      pdfContent.style.width = '210mm';
-      pdfContent.style.padding = '20mm';
-      pdfContent.style.backgroundColor = 'white';
-      pdfContent.style.fontFamily = 'Arial, sans-serif';
-      pdfContent.style.fontSize = '12px';
-      pdfContent.style.lineHeight = '1.4';
+      // Criar PDF diretamente sem html2canvas para melhor qualidade
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let yPosition = 20;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 15;
+      const contentWidth = pageWidth - (2 * margin);
       
-      // Cabeçalho
-      const header = document.createElement('div');
+      // Função para adicionar uma nova página se necessário
+      const checkNewPage = (neededHeight: number) => {
+        if (yPosition + neededHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+      };
+      
+      // Função para quebrar texto
+      const splitText = (text: string, maxWidth: number, fontSize: number) => {
+        pdf.setFontSize(fontSize);
+        return pdf.splitTextToSize(text, maxWidth);
+      };
+
+      // Cabeçalho da empresa
       const companyName = userProfile?.company_name || 'CheckSystem';
-      const companyLogo = userProfile?.company_logo || '';
       
-      header.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #7c3aed; padding-bottom: 20px;">
-          ${companyLogo ? `<img src="${companyLogo}" style="width: 120px; height: 120px; margin: 0 auto 20px; display: block; object-fit: contain; border-radius: 15px; box-shadow: 0 6px 12px rgba(0,0,0,0.15);" />` : ''}
-          <h1 style="color: #7c3aed; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 0 3px 6px rgba(124, 58, 237, 0.2); letter-spacing: 2px;">${companyName}</h1>
-          <p style="color: #666; margin: 10px 0; font-size: 18px; font-weight: 600;">Sistema eficiente para checklists de motos</p>
-          <h2 style="color: #333; margin: 20px 0; font-size: 26px; font-weight: 800; border-top: 2px solid #e5e7eb; padding-top: 15px;">Relatório de Vistoria</h2>
-        </div>
-      `;
-      pdfContent.appendChild(header);
+      // Logo da empresa (se existir)
+      if (userProfile?.company_logo) {
+        try {
+          checkNewPage(40);
+          pdf.addImage(userProfile.company_logo, 'JPEG', margin + 60, yPosition, 90, 30);
+          yPosition += 35;
+        } catch (error) {
+          console.warn('Erro ao adicionar logo:', error);
+        }
+      }
+      
+      // Título da empresa
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(margin, yPosition, contentWidth, 15, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(companyName, pageWidth / 2, yPosition + 10, { align: 'center' });
+      yPosition += 20;
+      
+      // Subtítulo
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'normal');
+      pdf.text('Relatório de Vistoria de Motocicleta', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 15;
+
+      // Reset cor do texto
+      pdf.setTextColor(0, 0, 0);
 
       // Dados da moto e cliente
-      const motoData = document.createElement('div');
-      motoData.innerHTML = `
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Dados da Moto e Cliente</h3>
-          <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 25%; background-color: #f1f5f9;">Modelo:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.modelo || 'Não informado'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 25%; background-color: #f1f5f9;">Placa:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.placa || 'Não informado'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Cor:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.cor || 'Não informado'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">KM:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.km || 'Não informado'}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">KM Atual:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.kmAtual || 'Não informado'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Chassi:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.chassi || 'Não informado'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Motor:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.motor || 'Não informado'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Cliente:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.cliente || 'Não informado'}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">RG:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.rg || 'Não informado'}</td>
-              <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background-color: #f1f5f9;">Data da Vistoria:</td>
-              <td style="padding: 8px; border: 1px solid #ddd; background-color: white;">${clientData.data || 'Não informado'}</td>
-            </tr>
-          </table>
-        </div>
-      `;
-      pdfContent.appendChild(motoData);
+      checkNewPage(50);
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Dados da Moto e Cliente', margin + 2, yPosition + 6);
+      yPosition += 12;
+
+      const clientInfo = [
+        ['Modelo:', clientData.modelo || 'Não informado', 'Placa:', clientData.placa || 'Não informado'],
+        ['Cor:', clientData.cor || 'Não informado', 'KM:', clientData.km || 'Não informado'],
+        ['KM Atual:', clientData.kmAtual || 'Não informado', 'Chassi:', clientData.chassi || 'Não informado'],
+        ['Motor:', clientData.motor || 'Não informado', 'Cliente:', clientData.cliente || 'Não informado'],
+        ['RG:', clientData.rg || 'Não informado', 'Data da Vistoria:', clientData.data || 'Não informado']
+      ];
+
+      pdf.setFontSize(10);
+      clientInfo.forEach((row, index) => {
+        checkNewPage(8);
+        const bgColor = index % 2 === 0 ? [248, 250, 252] as const : [255, 255, 255] as const;
+        pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+        pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+        
+        pdf.setFont(undefined, 'bold');
+        pdf.text(row[0], margin + 2, yPosition + 4);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(row[1], margin + 45, yPosition + 4);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(row[2], margin + 105, yPosition + 4);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(row[3], margin + 145, yPosition + 4);
+        yPosition += 6;
+      });
+      yPosition += 5;
 
       // Função para obter o valor selecionado de um radio group
       const getSelectedValue = (name: string) => {
         const selected = document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement;
-        if (!selected) return '❓ Não verificado';
+        if (!selected) return 'Não verificado';
         
         switch (selected.value) {
-          case 'bom': return '✅ Bom';
-          case 'regular': return '⚠️ Regular';
-          case 'necessita_troca': return '❌ Necessita Troca';
-          default: return '❓ Não informado';
+          case 'bom': return 'Bom';
+          case 'regular': return 'Regular';
+          case 'necessita_troca': return 'Necessita Troca';
+          default: return 'Não informado';
         }
       };
 
-      // Função para obter observações específicas de cada seção
+      // Função para obter observações
       const getObservation = (selector: string) => {
         const textarea = document.querySelector(selector) as HTMLTextAreaElement;
-        return textarea?.value?.trim() || '';
+        return textarea?.value?.trim() || 'Nenhuma observação';
       };
 
-      // Checklist de condições com observações
-      const checklistData = document.createElement('div');
-      
-      // Dados do checklist com observações
+      // Checklist de condições
+      checkNewPage(15);
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Checklist de Condições', margin + 2, yPosition + 6);
+      yPosition += 12;
+
       const checklistItems = [
-        { 
-          name: 'pneu_dianteiro', 
-          label: 'Pneu Dianteiro',
-          observation: getObservation('textarea[placeholder*="pneu dianteiro"]')
-        },
-        { 
-          name: 'pneu_traseiro', 
-          label: 'Pneu Traseiro',
-          observation: getObservation('textarea[placeholder*="pneu traseiro"]')
-        },
-        { 
-          name: 'freio', 
-          label: 'Sistema de Freio',
-          observation: getObservation('textarea[placeholder*="sistema de freio"]')
-        },
-        { 
-          name: 'farol', 
-          label: 'Farol Dianteiro',
-          observation: getObservation('textarea[placeholder*="farol dianteiro"]')
-        },
-        { 
-          name: 'lanterna', 
-          label: 'Lanterna Traseira',
-          observation: getObservation('textarea[placeholder*="lanterna traseira"]')
-        },
-        { 
-          name: 'setas', 
-          label: 'Sistema de Setas',
-          observation: getObservation('textarea[placeholder*="sistema de setas"]')
-        },
-        { 
-          name: 'bateria', 
-          label: 'Bateria',
-          observation: getObservation('textarea[placeholder*="bateria"]')
-        },
-        { 
-          name: 'mecanica_motor', 
-          label: 'Mecânica - Motor',
-          observation: getObservation('textarea[placeholder*="motor"]')
-        },
-        { 
-          name: 'mecanica_transmissao', 
-          label: 'Mecânica - Transmissão',
-          observation: getObservation('textarea[placeholder*="transmissão"]')
-        },
-        { 
-          name: 'suspensao_dianteira', 
-          label: 'Suspensão Dianteira',
-          observation: getObservation('textarea[placeholder*="suspensão dianteira"]')
-        },
-        { 
-          name: 'suspensao_traseira', 
-          label: 'Suspensão Traseira',
-          observation: getObservation('textarea[placeholder*="suspensão traseira"]')
-        },
-        { 
-          name: 'carroceria_tanque_banco', 
-          label: 'Carroceria, Tanque e Banco',
-          observation: getObservation('textarea[placeholder*="carroceria"]')
-        }
+        { name: 'pneu_dianteiro', label: 'Pneu Dianteiro', observation: getObservation('textarea[placeholder*="pneu dianteiro"]') },
+        { name: 'pneu_traseiro', label: 'Pneu Traseiro', observation: getObservation('textarea[placeholder*="pneu traseiro"]') },
+        { name: 'freio', label: 'Sistema de Freio', observation: getObservation('textarea[placeholder*="sistema de freio"]') },
+        { name: 'farol', label: 'Farol Dianteiro', observation: getObservation('textarea[placeholder*="farol dianteiro"]') },
+        { name: 'lanterna', label: 'Lanterna Traseira', observation: getObservation('textarea[placeholder*="lanterna traseira"]') },
+        { name: 'setas', label: 'Sistema de Setas', observation: getObservation('textarea[placeholder*="sistema de setas"]') },
+        { name: 'bateria', label: 'Bateria', observation: getObservation('textarea[placeholder*="bateria"]') },
+        { name: 'mecanica_motor', label: 'Motor', observation: getObservation('textarea[placeholder*="motor"]') },
+        { name: 'mecanica_transmissao', label: 'Transmissão', observation: getObservation('textarea[placeholder*="transmissão"]') },
+        { name: 'suspensao_dianteira', label: 'Suspensão Dianteira', observation: getObservation('textarea[placeholder*="suspensão dianteira"]') },
+        { name: 'suspensao_traseira', label: 'Suspensão Traseira', observation: getObservation('textarea[placeholder*="suspensão traseira"]') },
+        { name: 'carroceria_tanque_banco', label: 'Tanque e Banco', observation: getObservation('textarea[placeholder*="tanque e banco"]') }
       ];
 
-      let checklistHTML = `
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Checklist de Condições</h3>
-          <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <tr style="background-color: #7c3aed; color: white;">
-              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; width: 40%;">Item</th>
-              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: 700; width: 20%;">Condição</th>
-              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; width: 40%;">Observação</th>
-            </tr>
-      `;
+      // Cabeçalho da tabela
+      checkNewPage(8);
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Item', margin + 2, yPosition + 4);
+      pdf.text('Condição', margin + 70, yPosition + 4);
+      pdf.text('Observação', margin + 110, yPosition + 4);
+      yPosition += 6;
 
+      pdf.setTextColor(0, 0, 0);
       checklistItems.forEach((item, index) => {
-        const isEvenRow = index % 2 === 0;
+        checkNewPage(8);
         const condition = getSelectedValue(item.name);
-        const bgColor = isEvenRow ? '#f8f9fa' : 'white';
+        const bgColor = index % 2 === 0 ? [248, 250, 252] as const : [255, 255, 255] as const;
+        pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+        pdf.rect(margin, yPosition, contentWidth, 6, 'F');
         
-        checklistHTML += `
-          <tr ${isEvenRow ? 'style="background-color: #f8f9fa;"' : ''}>
-            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: ${bgColor};">${item.label}</td>
-            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white; font-weight: 600;">${condition}</td>
-            <td style="padding: 10px; border: 1px solid #ddd; background-color: white; font-style: ${item.observation ? 'normal' : 'italic'}; color: ${item.observation ? '#374151' : '#9ca3af'};">
-              ${item.observation || 'Nenhuma observação'}
-            </td>
-          </tr>
-        `;
+        pdf.setFont(undefined, 'bold');
+        pdf.setFontSize(9);
+        pdf.text(item.label, margin + 2, yPosition + 4);
+        
+        // Cor da condição baseada no status
+        if (condition === 'Bom') pdf.setTextColor(34, 197, 94);
+        else if (condition === 'Regular') pdf.setTextColor(234, 179, 8);
+        else if (condition === 'Necessita Troca') pdf.setTextColor(239, 68, 68);
+        else pdf.setTextColor(107, 114, 128);
+        
+        pdf.setFont(undefined, 'bold');
+        pdf.text(condition, margin + 70, yPosition + 4);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont(undefined, 'normal');
+        const obsText = splitText(item.observation, 85, 8);
+        pdf.setFontSize(8);
+        pdf.text(obsText[0] || 'Nenhuma observação', margin + 110, yPosition + 4);
+        yPosition += 6;
       });
+      yPosition += 10;
 
-      checklistHTML += `
-          </table>
-        </div>
-      `;
-      
-      checklistData.innerHTML = checklistHTML;
-      pdfContent.appendChild(checklistData);
-
-      // Seção de Fotos melhorada
+      // Função para adicionar fotos de forma otimizada
       const addPhotoSection = (title: string, photos: string[]) => {
-        if (photos.length === 0) return `
-          <div style="margin-bottom: 15px;">
-            <h4 style="color: #7c3aed; margin-bottom: 8px; font-size: 14px; font-weight: 600;">${title}</h4>
-            <p style="color: #9ca3af; font-style: italic; font-size: 12px; margin: 0;">Nenhuma foto capturada</p>
-          </div>
-        `;
+        if (photos.length === 0) return;
         
-        let photoHTML = `
-          <div style="margin-bottom: 20px; page-break-inside: avoid;">
-            <h4 style="color: #7c3aed; margin-bottom: 12px; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">${title} (${photos.length} foto${photos.length > 1 ? 's' : ''})</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-        `;
+        checkNewPage(15);
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(124, 58, 237);
+        pdf.text(`${title} (${photos.length} foto${photos.length > 1 ? 's' : ''})`, margin + 2, yPosition + 4);
+        pdf.setTextColor(0, 0, 0);
+        yPosition += 10;
+
+        const photosPerRow = 3;
+        const photoWidth = (contentWidth - 10) / photosPerRow;
+        const photoHeight = photoWidth * 0.75;
         
         photos.forEach((photo, index) => {
-          photoHTML += `
-            <div style="text-align: center; page-break-inside: avoid;">
-              <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background-color: #fafafa;">
-                <img src="${photo}" style="width: 100%; max-width: 180px; height: 140px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                <p style="margin: 8px 0 0 0; font-size: 11px; font-weight: 600; color: #374151;">Foto ${index + 1}</p>
-              </div>
-            </div>
-          `;
+          const col = index % photosPerRow;
+          const row = Math.floor(index / photosPerRow);
+          
+          if (col === 0) {
+            checkNewPage(photoHeight + 10);
+          }
+          
+          const x = margin + (col * (photoWidth + 5));
+          const y = yPosition + (row * (photoHeight + 8));
+          
+          try {
+            pdf.addImage(photo, 'JPEG', x, y, photoWidth, photoHeight);
+            
+            // Número da foto
+            pdf.setFillColor(124, 58, 237);
+            pdf.circle(x + photoWidth - 8, y + 8, 4, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(8);
+            pdf.setFont(undefined, 'bold');
+            pdf.text((index + 1).toString(), x + photoWidth - 8, y + 10, { align: 'center' });
+            pdf.setTextColor(0, 0, 0);
+          } catch (error) {
+            console.warn(`Erro ao adicionar foto ${index + 1}:`, error);
+            // Placeholder para foto com erro
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(x, y, photoWidth, photoHeight, 'F');
+            pdf.setTextColor(107, 114, 128);
+            pdf.setFontSize(8);
+            pdf.text('Erro ao carregar foto', x + photoWidth/2, y + photoHeight/2, { align: 'center' });
+            pdf.setTextColor(0, 0, 0);
+          }
+          
+          if ((index + 1) % photosPerRow === 0 || index === photos.length - 1) {
+            yPosition = y + photoHeight + 5;
+          }
         });
-        
-        photoHTML += `
-            </div>
-          </div>
-        `;
-        
-        return photoHTML;
+        yPosition += 5;
       };
 
-      // Adicionar seções de fotos
-      const photosSection = document.createElement('div');
-      photosSection.innerHTML = `
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Fotos da Vistoria</h3>
-          ${addPhotoSection('KM Atual', fotosKmAtual)}
-          ${addPhotoSection('Fotos Gerais - Frontal', fotosGeraisFrontal)}
-          ${addPhotoSection('Fotos Gerais - Traseira', fotosGeraisTraseira)}
-          ${addPhotoSection('Fotos Gerais - Lateral Esquerda', fotosGeraisLateralEsquerda)}
-          ${addPhotoSection('Fotos Gerais - Lateral Direita', fotosGeraisLateralDireita)}
-          ${addPhotoSection('Pneu Dianteiro', fotosPneuDianteiro)}
-          ${addPhotoSection('Pneu Traseiro', fotosPneuTraseiro)}
-          ${addPhotoSection('Freios', fotosFreios)}
-          ${addPhotoSection('Farol Dianteiro', fotosFarolDianteiro)}
-          ${addPhotoSection('Lanterna Traseira', fotosLanternaTraseira)}
-          ${addPhotoSection('Sistema de Setas', fotosSistemaSetas)}
-          ${addPhotoSection('Sistema de Buzina', fotosSistemaBuzina)}
-          ${addPhotoSection('Motor', fotosMotor)}
-          ${addPhotoSection('Transmissão', fotosTransmissao)}
-          ${addPhotoSection('Suspensão Dianteira', fotosSuspensaoDianteira)}
-          ${addPhotoSection('Suspensão Traseira', fotosSuspensaoTraseira)}
-          ${addPhotoSection('Carroceria', fotosCarroceria)}
-          ${addPhotoSection('Observações Finais', fotosObservacoesFinais)}
-        </div>
-      `;
-      pdfContent.appendChild(photosSection);
+      // Seções de fotos
+      checkNewPage(15);
+      pdf.setFillColor(124, 58, 237);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Fotos da Vistoria', margin + 2, yPosition + 6);
+      pdf.setTextColor(0, 0, 0);
+      yPosition += 12;
+
+      addPhotoSection('KM Atual', fotosKmAtual);
+      addPhotoSection('Fotos Gerais - Frontal', fotosGeraisFrontal);
+      addPhotoSection('Fotos Gerais - Traseira', fotosGeraisTraseira);
+      addPhotoSection('Fotos Gerais - Lateral Esquerda', fotosGeraisLateralEsquerda);
+      addPhotoSection('Fotos Gerais - Lateral Direita', fotosGeraisLateralDireita);
+      addPhotoSection('Pneu Dianteiro', fotosPneuDianteiro);
+      addPhotoSection('Pneu Traseiro', fotosPneuTraseiro);
+      addPhotoSection('Freios', fotosFreios);
+      addPhotoSection('Farol Dianteiro', fotosFarolDianteiro);
+      addPhotoSection('Lanterna Traseira', fotosLanternaTraseira);
+      addPhotoSection('Sistema de Setas', fotosSistemaSetas);
+      addPhotoSection('Sistema de Buzina', fotosSistemaBuzina);
+      addPhotoSection('Motor', fotosMotor);
+      addPhotoSection('Transmissão', fotosTransmissao);
+      addPhotoSection('Suspensão Dianteira', fotosSuspensaoDianteira);
+      addPhotoSection('Suspensão Traseira', fotosSuspensaoTraseira);
+      addPhotoSection('Carroceria', fotosCarroceria);
+      addPhotoSection('Observações Finais', fotosObservacoesFinais);
 
       // Observações finais
       const observacoes = document.querySelector('textarea[placeholder*="observações finais"]') as HTMLTextAreaElement;
       if (observacoes && observacoes.value.trim()) {
-        const observacoesData = document.createElement('div');
-        observacoesData.innerHTML = `
-          <div style="margin-bottom: 30px;">
-            <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Observações Finais</h3>
-            <div style="padding: 15px; border: 2px solid #e5e7eb; background-color: #f9fafb; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <p style="margin: 0; line-height: 1.6; color: #374151;">${observacoes.value}</p>
-            </div>
-          </div>
-        `;
-        pdfContent.appendChild(observacoesData);
+        checkNewPage(20);
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(124, 58, 237);
+        pdf.text('Observações Finais', margin + 2, yPosition + 4);
+        pdf.setTextColor(0, 0, 0);
+        yPosition += 10;
+        
+        const obsText = splitText(observacoes.value, contentWidth - 10, 10);
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'normal');
+        obsText.forEach((line: string) => {
+          checkNewPage(6);
+          pdf.text(line, margin + 5, yPosition);
+          yPosition += 5;
+        });
+        yPosition += 5;
       }
 
       // Assinaturas
-      const assinaturasSection = document.createElement('div');
-      assinaturasSection.innerHTML = `
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Assinaturas</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-            <div style="text-align: center;">
-              <h4 style="color: #374151; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Assinatura do Vistoriador</h4>
-              ${vistoriadorSignature ? `<img src="${vistoriadorSignature}" style="width: 200px; height: 80px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; background-color: white;" />` : '<div style="width: 200px; height: 80px; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">Sem assinatura</div>'}
-            </div>
-            <div style="text-align: center;">
-              <h4 style="color: #374151; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Assinatura do Locatário</h4>
-              ${locatarioSignature ? `<img src="${locatarioSignature}" style="width: 200px; height: 80px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; background-color: white;" />` : '<div style="width: 200px; height: 80px; border: 2px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">Sem assinatura</div>'}
-            </div>
-          </div>
-        </div>
-      `;
-      pdfContent.appendChild(assinaturasSection);
+      checkNewPage(40);
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(124, 58, 237);
+      pdf.text('Assinaturas', margin + 2, yPosition + 4);
+      pdf.setTextColor(0, 0, 0);
+      yPosition += 15;
+
+      const signatureWidth = (contentWidth - 10) / 2;
+      const signatureHeight = 25;
+
+      // Assinatura do Vistoriador
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(10);
+      pdf.text('Assinatura do Vistoriador', margin, yPosition);
+      yPosition += 5;
+      
+      if (vistoriadorSignature) {
+        try {
+          pdf.addImage(vistoriadorSignature, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+        } catch (error) {
+          console.warn('Erro ao adicionar assinatura do vistoriador:', error);
+          pdf.setDrawColor(200, 200, 200);
+          pdf.rect(margin, yPosition, signatureWidth, signatureHeight);
+          pdf.setTextColor(107, 114, 128);
+          pdf.text('Erro ao carregar assinatura', margin + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+          pdf.setTextColor(0, 0, 0);
+        }
+      } else {
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(margin, yPosition, signatureWidth, signatureHeight);
+        pdf.setTextColor(107, 114, 128);
+        pdf.setFont(undefined, 'normal');
+        pdf.text('Sem assinatura', margin + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+        pdf.setTextColor(0, 0, 0);
+      }
+
+      // Assinatura do Locatário
+      pdf.setFont(undefined, 'bold');
+      pdf.setFontSize(10);
+      pdf.text('Assinatura do Locatário', margin + signatureWidth + 10, yPosition - 5);
+      
+      if (locatarioSignature) {
+        try {
+          pdf.addImage(locatarioSignature, 'PNG', margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+        } catch (error) {
+          console.warn('Erro ao adicionar assinatura do locatário:', error);
+          pdf.setDrawColor(200, 200, 200);
+          pdf.rect(margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+          pdf.setTextColor(107, 114, 128);
+          pdf.text('Erro ao carregar assinatura', margin + signatureWidth + 10 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+          pdf.setTextColor(0, 0, 0);
+        }
+      } else {
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+        pdf.setTextColor(107, 114, 128);
+        pdf.setFont(undefined, 'normal');
+        pdf.text('Sem assinatura', margin + signatureWidth + 10 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+        pdf.setTextColor(0, 0, 0);
+      }
+
+      yPosition += signatureHeight + 10;
 
       // Rodapé
-      const footer = document.createElement('div');
-      footer.innerHTML = `
-        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 11px;">
-          <p style="margin: 0 0 5px 0;">Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-          <p style="margin: 0; font-weight: 600;">${companyName} - Sistema de Vistorias</p>
-        </div>
-      `;
-      pdfContent.appendChild(footer);
-
-      // Adicionar ao DOM temporariamente
-      document.body.appendChild(pdfContent);
-
-      // Gerar PDF
-      const canvas = await html2canvas(pdfContent, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-
-      // Remover do DOM
-      document.body.removeChild(pdfContent);
-
-      // Criar PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      checkNewPage(15);
+      pdf.setDrawColor(124, 58, 237);
+      pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 5;
+      
+      pdf.setTextColor(107, 114, 128);
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Relatório gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
+      pdf.setFont(undefined, 'bold');
+      pdf.text(`${companyName} - Sistema de Vistorias`, pageWidth / 2, yPosition, { align: 'center' });
 
       // Nome do arquivo
       const fileName = `vistoria_${clientData.placa || 'sem_placa'}_${new Date().toISOString().split('T')[0]}.pdf`;
