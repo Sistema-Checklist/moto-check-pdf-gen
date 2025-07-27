@@ -24,6 +24,7 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
       onClose();
       return;
     }
+
     // Detect platform
     setIsIOS(checkIsIOS());
     setIsAndroid(checkIsAndroid());

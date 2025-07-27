@@ -89,15 +89,60 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then((registration) => {
               console.log('SW registered: ', registration);
+              
+              // Listen for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content is available, show update notification
+                      console.log('New content is available; please refresh.');
+                    }
+                  });
+                }
+              });
             })
             .catch((registrationError) => {
               console.log('SW registration failed: ', registrationError);
             });
         });
       }
+
+      // PWA Install functionality
+      let deferredPrompt;
+      let installButton;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt fired');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show install button or prompt
+        const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                           window.navigator.standalone === true;
+        
+        if (!isInstalled) {
+          console.log('App not installed, showing install prompt capability');
+        }
+      });
+
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('CheckSystem PWA foi instalado');
+        deferredPrompt = null;
+      });
+
+      // Check if already installed
+      window.addEventListener('DOMContentLoaded', () => {
+        const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                           window.navigator.standalone === true;
+        if (isInstalled) {
+          console.log('CheckSystem PWA está rodando em modo standalone');
+        }
+      });
     </script>
   </body>
 </html>
