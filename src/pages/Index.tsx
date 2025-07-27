@@ -662,9 +662,47 @@ Por favor, entre em contato para confirmar o agendamento.`;
       // Logo da empresa (se existir)
       if (userProfile?.company_logo) {
         try {
-          checkNewPage(40);
-          pdf.addImage(userProfile.company_logo, 'JPEG', margin + 60, yPosition, 90, 30);
-          yPosition += 35;
+          checkNewPage(50);
+          
+          // Criar uma imagem temporária para obter dimensões reais
+          const img = new Image();
+          img.src = userProfile.company_logo;
+          
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              const maxWidth = 80;
+              const maxHeight = 40;
+              
+              // Calcular proporções mantendo aspect ratio
+              let logoWidth = img.width;
+              let logoHeight = img.height;
+              
+              if (logoWidth > maxWidth) {
+                logoHeight = (logoHeight * maxWidth) / logoWidth;
+                logoWidth = maxWidth;
+              }
+              
+              if (logoHeight > maxHeight) {
+                logoWidth = (logoWidth * maxHeight) / logoHeight;
+                logoHeight = maxHeight;
+              }
+              
+              // Centralizar logo
+              const logoX = (pageWidth - logoWidth) / 2;
+              
+              pdf.addImage(userProfile.company_logo, 'JPEG', logoX, yPosition, logoWidth, logoHeight);
+              yPosition += logoHeight + 10;
+              resolve(null);
+            };
+            
+            img.onerror = () => {
+              console.warn('Erro ao carregar logo');
+              reject();
+            };
+          }).catch(() => {
+            // Fallback sem logo
+            console.warn('Logo não pôde ser carregada');
+          });
         } catch (error) {
           console.warn('Erro ao adicionar logo:', error);
         }
@@ -923,71 +961,97 @@ Por favor, entre em contato para confirmar o agendamento.`;
       }
 
       // Assinaturas
-      checkNewPage(40);
+      checkNewPage(60);
       pdf.setFillColor(248, 250, 252);
-      pdf.rect(margin, yPosition, contentWidth, 6, 'F');
-      pdf.setFontSize(12);
+      pdf.rect(margin, yPosition, contentWidth, 8, 'F');
+      pdf.setFontSize(14);
       pdf.setFont(undefined, 'bold');
       pdf.setTextColor(124, 58, 237);
-      pdf.text('Assinaturas', margin + 2, yPosition + 4);
+      pdf.text('Assinaturas', margin + 2, yPosition + 6);
       pdf.setTextColor(0, 0, 0);
       yPosition += 15;
 
-      const signatureWidth = (contentWidth - 10) / 2;
-      const signatureHeight = 25;
+      const signatureWidth = (contentWidth - 20) / 2;
+      const signatureHeight = 40;
 
       // Assinatura do Vistoriador
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(10);
-      pdf.text('Assinatura do Vistoriador', margin, yPosition);
-      yPosition += 5;
+      pdf.setFontSize(12);
+      pdf.text('Assinatura do Vistoriador', margin + 2, yPosition);
+      yPosition += 8;
+      
+      // Borda mais definida para área de assinatura
+      pdf.setDrawColor(124, 58, 237);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, yPosition, signatureWidth, signatureHeight);
       
       if (vistoriadorSignature) {
         try {
-          pdf.addImage(vistoriadorSignature, 'PNG', margin, yPosition, signatureWidth, signatureHeight);
+          pdf.addImage(vistoriadorSignature, 'PNG', margin + 2, yPosition + 2, signatureWidth - 4, signatureHeight - 4);
         } catch (error) {
           console.warn('Erro ao adicionar assinatura do vistoriador:', error);
-          pdf.setDrawColor(200, 200, 200);
-          pdf.rect(margin, yPosition, signatureWidth, signatureHeight);
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(margin + 2, yPosition + 2, signatureWidth - 4, signatureHeight - 4, 'F');
           pdf.setTextColor(107, 114, 128);
+          pdf.setFontSize(10);
           pdf.text('Erro ao carregar assinatura', margin + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
           pdf.setTextColor(0, 0, 0);
         }
       } else {
-        pdf.setDrawColor(200, 200, 200);
-        pdf.rect(margin, yPosition, signatureWidth, signatureHeight);
+        pdf.setFillColor(250, 250, 250);
+        pdf.rect(margin + 2, yPosition + 2, signatureWidth - 4, signatureHeight - 4, 'F');
         pdf.setTextColor(107, 114, 128);
-        pdf.setFont(undefined, 'normal');
-        pdf.text('Sem assinatura', margin + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+        pdf.setFont(undefined, 'italic');
+        pdf.setFontSize(10);
+        pdf.text('Aguardando assinatura...', margin + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
         pdf.setTextColor(0, 0, 0);
       }
+      
+      // Nome e linha para assinatura manual se necessário
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
+      pdf.text('Nome: ___________________________________', margin + 2, yPosition + signatureHeight + 8);
+      pdf.text('Data: ___/___/______', margin + 2, yPosition + signatureHeight + 15);
 
       // Assinatura do Locatário
       pdf.setFont(undefined, 'bold');
-      pdf.setFontSize(10);
-      pdf.text('Assinatura do Locatário', margin + signatureWidth + 10, yPosition - 5);
+      pdf.setFontSize(12);
+      pdf.text('Assinatura do Locatário', margin + signatureWidth + 20, yPosition - 8);
+      
+      // Borda mais definida para área de assinatura
+      pdf.setDrawColor(124, 58, 237);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin + signatureWidth + 20, yPosition, signatureWidth, signatureHeight);
       
       if (locatarioSignature) {
         try {
-          pdf.addImage(locatarioSignature, 'PNG', margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+          pdf.addImage(locatarioSignature, 'PNG', margin + signatureWidth + 22, yPosition + 2, signatureWidth - 4, signatureHeight - 4);
         } catch (error) {
           console.warn('Erro ao adicionar assinatura do locatário:', error);
-          pdf.setDrawColor(200, 200, 200);
-          pdf.rect(margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(margin + signatureWidth + 22, yPosition + 2, signatureWidth - 4, signatureHeight - 4, 'F');
           pdf.setTextColor(107, 114, 128);
-          pdf.text('Erro ao carregar assinatura', margin + signatureWidth + 10 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+          pdf.setFontSize(10);
+          pdf.text('Erro ao carregar assinatura', margin + signatureWidth + 20 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
           pdf.setTextColor(0, 0, 0);
         }
       } else {
-        pdf.setDrawColor(200, 200, 200);
-        pdf.rect(margin + signatureWidth + 10, yPosition, signatureWidth, signatureHeight);
+        pdf.setFillColor(250, 250, 250);
+        pdf.rect(margin + signatureWidth + 22, yPosition + 2, signatureWidth - 4, signatureHeight - 4, 'F');
         pdf.setTextColor(107, 114, 128);
-        pdf.setFont(undefined, 'normal');
-        pdf.text('Sem assinatura', margin + signatureWidth + 10 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
+        pdf.setFont(undefined, 'italic');
+        pdf.setFontSize(10);
+        pdf.text('Aguardando assinatura...', margin + signatureWidth + 20 + signatureWidth/2, yPosition + signatureHeight/2, { align: 'center' });
         pdf.setTextColor(0, 0, 0);
       }
+      
+      // Nome e linha para assinatura manual se necessário
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
+      pdf.text('Nome: ___________________________________', margin + signatureWidth + 22, yPosition + signatureHeight + 8);
+      pdf.text('Data: ___/___/______', margin + signatureWidth + 22, yPosition + signatureHeight + 15);
 
-      yPosition += signatureHeight + 10;
+      yPosition += signatureHeight + 25;
 
       // Rodapé
       checkNewPage(15);

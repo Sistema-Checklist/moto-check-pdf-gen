@@ -183,11 +183,11 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       }`}>
         <canvas
           ref={canvasRef}
-          className="w-full h-32 cursor-crosshair touch-none bg-white rounded border border-gray-200"
+          className="w-full h-48 cursor-crosshair touch-none bg-white rounded border border-gray-200"
           style={{ 
             touchAction: 'none',
             width: '100%',
-            height: '128px'
+            height: '192px'
           }}
         />
         {hasSignature && (
