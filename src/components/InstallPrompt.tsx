@@ -14,6 +14,16 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
   const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
+    // Verificar se o app já está instalado
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                       (window.navigator as any).standalone === true ||
+                       document.referrer.includes('android-app://');
+
+    // Se já estiver instalado, não mostrar o prompt
+    if (isInstalled) {
+      onClose();
+      return;
+    }
     // Detect platform
     setIsIOS(checkIsIOS());
     setIsAndroid(checkIsAndroid());

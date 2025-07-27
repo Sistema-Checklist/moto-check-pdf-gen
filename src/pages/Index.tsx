@@ -85,10 +85,21 @@ function usePWAPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    // Show prompt after 3 seconds on mobile
+    // Verificar se o app já está instalado
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                       (window.navigator as any).standalone === true ||
+                       document.referrer.includes('android-app://');
+
+    // Se já estiver instalado, não mostrar o prompt
+    if (isInstalled) {
+      setShowPrompt(false);
+      return;
+    }
+
+    // Mostrar prompt após 3 segundos apenas em dispositivos móveis e se não estiver instalado
     const timer = setTimeout(() => {
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
+      if (isMobile && !isInstalled) {
         setShowPrompt(true);
       }
     }, 3000);
