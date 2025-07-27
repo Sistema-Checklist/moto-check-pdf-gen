@@ -190,16 +190,6 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
             height: '192px'
           }}
         />
-        {hasSignature && (
-          <div className="mt-2 text-center">
-            <span className="text-xs text-green-600 font-medium">✓ Assinatura salva</span>
-          </div>
-        )}
-        {isDrawing && (
-          <div className="mt-2 text-center">
-            <span className="text-xs text-blue-600 font-medium">Desenhando...</span>
-          </div>
-        )}
         {!hasSignature && !isDrawing && (
           <div className="mt-2 text-center">
             <span className="text-xs text-gray-500">Toque e arraste para assinar</span>

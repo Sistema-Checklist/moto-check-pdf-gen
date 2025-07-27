@@ -998,11 +998,6 @@ Por favor, entre em contato para confirmar o agendamento.`;
         pdf.setTextColor(0, 0, 0);
       }
       
-      // Nome e linha para assinatura manual se necessário
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      pdf.text('Nome: ___________________________________', margin + 2, yPosition + signatureHeight + 8);
-      pdf.text('Data: ___/___/______', margin + 2, yPosition + signatureHeight + 15);
 
       // Assinatura do Locatário
       pdf.setFont(undefined, 'bold');
@@ -1036,13 +1031,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
         pdf.setTextColor(0, 0, 0);
       }
       
-      // Nome e linha para assinatura manual se necessário
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      pdf.text('Nome: ___________________________________', margin + signatureWidth + 22, yPosition + signatureHeight + 8);
-      pdf.text('Data: ___/___/______', margin + signatureWidth + 22, yPosition + signatureHeight + 15);
 
-      yPosition += signatureHeight + 25;
+      yPosition += signatureHeight + 10;
 
       // Rodapé
       checkNewPage(15);
