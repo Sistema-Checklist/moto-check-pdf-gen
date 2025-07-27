@@ -685,94 +685,146 @@ Por favor, entre em contato para confirmar o agendamento.`;
       // Função para obter o valor selecionado de um radio group
       const getSelectedValue = (name: string) => {
         const selected = document.querySelector(`input[name="${name}"]:checked`) as HTMLInputElement;
-        if (!selected) return '';
+        if (!selected) return '❓ Não verificado';
         
         switch (selected.value) {
           case 'bom': return '✅ Bom';
           case 'regular': return '⚠️ Regular';
           case 'necessita_troca': return '❌ Necessita Troca';
-          default: return '';
+          default: return '❓ Não informado';
         }
       };
 
-      // Checklist de condições
+      // Função para obter observações específicas de cada seção
+      const getObservation = (selector: string) => {
+        const textarea = document.querySelector(selector) as HTMLTextAreaElement;
+        return textarea?.value?.trim() || '';
+      };
+
+      // Checklist de condições com observações
       const checklistData = document.createElement('div');
-      checklistData.innerHTML = `
+      
+      // Dados do checklist com observações
+      const checklistItems = [
+        { 
+          name: 'pneu_dianteiro', 
+          label: 'Pneu Dianteiro',
+          observation: getObservation('textarea[placeholder*="pneu dianteiro"]')
+        },
+        { 
+          name: 'pneu_traseiro', 
+          label: 'Pneu Traseiro',
+          observation: getObservation('textarea[placeholder*="pneu traseiro"]')
+        },
+        { 
+          name: 'freio', 
+          label: 'Sistema de Freio',
+          observation: getObservation('textarea[placeholder*="sistema de freio"]')
+        },
+        { 
+          name: 'farol', 
+          label: 'Farol Dianteiro',
+          observation: getObservation('textarea[placeholder*="farol dianteiro"]')
+        },
+        { 
+          name: 'lanterna', 
+          label: 'Lanterna Traseira',
+          observation: getObservation('textarea[placeholder*="lanterna traseira"]')
+        },
+        { 
+          name: 'setas', 
+          label: 'Sistema de Setas',
+          observation: getObservation('textarea[placeholder*="sistema de setas"]')
+        },
+        { 
+          name: 'bateria', 
+          label: 'Bateria',
+          observation: getObservation('textarea[placeholder*="bateria"]')
+        },
+        { 
+          name: 'mecanica_motor', 
+          label: 'Mecânica - Motor',
+          observation: getObservation('textarea[placeholder*="motor"]')
+        },
+        { 
+          name: 'mecanica_transmissao', 
+          label: 'Mecânica - Transmissão',
+          observation: getObservation('textarea[placeholder*="transmissão"]')
+        },
+        { 
+          name: 'suspensao_dianteira', 
+          label: 'Suspensão Dianteira',
+          observation: getObservation('textarea[placeholder*="suspensão dianteira"]')
+        },
+        { 
+          name: 'suspensao_traseira', 
+          label: 'Suspensão Traseira',
+          observation: getObservation('textarea[placeholder*="suspensão traseira"]')
+        },
+        { 
+          name: 'carroceria_tanque_banco', 
+          label: 'Carroceria, Tanque e Banco',
+          observation: getObservation('textarea[placeholder*="carroceria"]')
+        }
+      ];
+
+      let checklistHTML = `
         <div style="margin-bottom: 30px;">
           <h3 style="color: #7c3aed; border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-bottom: 20px; font-size: 18px; font-weight: 700;">Checklist de Condições</h3>
           <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <tr style="background-color: #7c3aed; color: white;">
-              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700;">Item</th>
-              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: 700;">Condição</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; width: 40%;">Item</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: 700; width: 20%;">Condição</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 700; width: 40%;">Observação</th>
             </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Pneu Dianteiro</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('pneu_dianteiro')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Pneu Traseiro</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('pneu_traseiro')}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Freio</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('freio')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Farol</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('farol')}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Lanterna</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('lanterna')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Setas</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('setas')}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Bateria</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('bateria')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Mecânica - Motor</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('mecanica_motor')}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Mecânica - Transmissão</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('mecanica_transmissao')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Suspensão Dianteira</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('suspensao_dianteira')}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: #f8f9fa;">Suspensão Traseira</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('suspensao_traseira')}</td>
-            </tr>
-            <tr style="background-color: #f8f9fa;">
-              <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Carroceria, Tanque e Banco</td>
-              <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white;">${getSelectedValue('carroceria_tanque_banco')}</td>
-            </tr>
+      `;
+
+      checklistItems.forEach((item, index) => {
+        const isEvenRow = index % 2 === 0;
+        const condition = getSelectedValue(item.name);
+        const bgColor = isEvenRow ? '#f8f9fa' : 'white';
+        
+        checklistHTML += `
+          <tr ${isEvenRow ? 'style="background-color: #f8f9fa;"' : ''}>
+            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; background-color: ${bgColor};">${item.label}</td>
+            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; background-color: white; font-weight: 600;">${condition}</td>
+            <td style="padding: 10px; border: 1px solid #ddd; background-color: white; font-style: ${item.observation ? 'normal' : 'italic'}; color: ${item.observation ? '#374151' : '#9ca3af'};">
+              ${item.observation || 'Nenhuma observação'}
+            </td>
+          </tr>
+        `;
+      });
+
+      checklistHTML += `
           </table>
         </div>
       `;
+      
+      checklistData.innerHTML = checklistHTML;
       pdfContent.appendChild(checklistData);
 
-      // Seção de Fotos
+      // Seção de Fotos melhorada
       const addPhotoSection = (title: string, photos: string[]) => {
-        if (photos.length === 0) return '';
+        if (photos.length === 0) return `
+          <div style="margin-bottom: 15px;">
+            <h4 style="color: #7c3aed; margin-bottom: 8px; font-size: 14px; font-weight: 600;">${title}</h4>
+            <p style="color: #9ca3af; font-style: italic; font-size: 12px; margin: 0;">Nenhuma foto capturada</p>
+          </div>
+        `;
         
         let photoHTML = `
-          <div style="margin-bottom: 20px;">
-            <h4 style="color: #7c3aed; margin-bottom: 10px; font-size: 14px; font-weight: 600;">${title}</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+          <div style="margin-bottom: 20px; page-break-inside: avoid;">
+            <h4 style="color: #7c3aed; margin-bottom: 12px; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">${title} (${photos.length} foto${photos.length > 1 ? 's' : ''})</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
         `;
         
         photos.forEach((photo, index) => {
           photoHTML += `
-            <div style="text-align: center;">
-              <img src="${photo}" style="width: 100%; max-width: 150px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-              <p style="margin-top: 5px; font-size: 10px; color: #666;">Foto ${index + 1}</p>
+            <div style="text-align: center; page-break-inside: avoid;">
+              <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px; background-color: #fafafa;">
+                <img src="${photo}" style="width: 100%; max-width: 180px; height: 140px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                <p style="margin: 8px 0 0 0; font-size: 11px; font-weight: 600; color: #374151;">Foto ${index + 1}</p>
+              </div>
             </div>
           `;
         });

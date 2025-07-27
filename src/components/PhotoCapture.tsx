@@ -40,18 +40,28 @@ export default function PhotoCapture({
   const startCamera = async () => {
     console.log('Iniciando câmera...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const constraints = {
         video: { 
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          aspectRatio: { ideal: 16/9 }
         } 
-      });
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('Stream obtido com sucesso:', stream);
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true'); // iOS Safari fix
         console.log('Video element configurado');
+        
+        // Aguardar metadados do vídeo carregarem
+        videoRef.current.addEventListener('loadedmetadata', () => {
+          console.log('Metadados carregados');
+        });
       } else {
         console.error('Video element não encontrado');
       }
@@ -71,54 +81,63 @@ export default function PhotoCapture({
 
   const capturePhoto = () => {
     console.log('Tentando capturar foto...');
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      
-      console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-      console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-      
-      if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-        // Configurar canvas com as dimensões do vídeo
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // Salvar o contexto atual
-        ctx.save();
-        
-        // Aplicar transformação para corrigir a orientação da câmera traseira
-        // Para câmera traseira (environment), não precisamos espelhar
-        // Para câmera frontal (user), precisaríamos espelhar
-        const isFrontCamera = false; // Assumindo que sempre usamos câmera traseira
-        
-        if (isFrontCamera) {
-          // Para câmera frontal, espelhar horizontalmente
-          ctx.scale(-1, 1);
-          ctx.translate(-canvas.width, 0);
-        }
-        
-        // Desenhar o frame atual do vídeo no canvas
-        ctx.drawImage(video, 0, 0);
-        
-        // Restaurar o contexto
-        ctx.restore();
-        
-        // Converter para base64
-        const photoData = canvas.toDataURL('image/jpeg', 0.8);
-        console.log('Foto capturada com sucesso, tamanho:', photoData.length);
-        
-        // Salvar foto diretamente no checklist
-        onPhotoCapture(photoData);
-        setIsCameraOpen(false);
-      } else {
-        console.error('Não foi possível obter o contexto do canvas ou dimensões do vídeo inválidas');
-        alert('Erro ao capturar foto. Tente novamente.');
-      }
-    } else {
-      console.error('Video ou canvas não encontrado:', { video: !!videoRef.current, canvas: !!canvasRef.current });
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video ou canvas não encontrado');
       alert('Erro ao acessar câmera. Tente novamente.');
+      return;
     }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+      
+    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      
+    if (!ctx) {
+      console.error('Contexto do canvas não disponível');
+      alert('Erro ao processar imagem.');
+      return;
+    }
+
+    // Verificar se o vídeo está carregado
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error('Vídeo não carregado adequadamente');
+      alert('Aguarde a câmera carregar completamente.');
+      return;
+    }
+
+    // Definir dimensões otimizadas (máximo 1920x1080)
+    const maxWidth = 1920;
+    const maxHeight = 1080;
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    
+    // Redimensionar mantendo proporção se necessário
+    if (width > maxWidth || height > maxHeight) {
+      const aspectRatio = width / height;
+      if (width > height) {
+        width = maxWidth;
+        height = maxWidth / aspectRatio;
+      } else {
+        height = maxHeight;
+        width = maxHeight * aspectRatio;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    console.log('Canvas configurado:', width, 'x', height);
+        
+    // Desenhar o frame atual do vídeo no canvas
+    ctx.drawImage(video, 0, 0, width, height);
+        
+    // Converter para base64 com qualidade otimizada
+    const photoData = canvas.toDataURL('image/jpeg', 0.85);
+    console.log('Foto capturada com sucesso, tamanho:', photoData.length);
+        
+    // Salvar foto
+    onPhotoCapture(photoData);
+    setIsCameraOpen(false);
   };
 
   const selectFromGallery = (e?: React.MouseEvent) => {
@@ -127,68 +146,110 @@ export default function PhotoCapture({
       e.stopPropagation();
     }
     console.log('=== selectFromGallery chamado ===');
-    console.log('Current count:', currentCount);
-    console.log('Max photos:', maxPhotos);
     
     // Verificar se o limite foi atingido
     if (currentCount >= maxPhotos) {
-      console.log('Limite de fotos atingido, não abrindo galeria');
       alert(`Máximo de ${maxPhotos} fotos atingido. Delete uma foto para adicionar mais.`);
       return;
     }
     
-    // Verificar se é dispositivo móvel
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                  (window.navigator as any).standalone === true;
-    console.log('É dispositivo móvel:', isMobile);
-    console.log('É PWA:', isPWA);
-    console.log('Display mode:', window.matchMedia('(display-mode: standalone)').matches);
-    
-    // Método simplificado que deve funcionar no Chrome
     try {
-      // Criar um input temporário
       const tempInput = document.createElement('input');
       tempInput.type = 'file';
-      tempInput.accept = 'image/*';
+      tempInput.accept = 'image/jpeg,image/jpg,image/png,image/webp';
       tempInput.multiple = false;
       
-      // Configurar o evento onchange
       tempInput.onchange = (event) => {
         const target = event.target as HTMLInputElement;
         if (target.files && target.files[0]) {
           const file = target.files[0];
-          console.log('Arquivo selecionado:', file.name);
-          console.log('Tamanho:', file.size);
-          console.log('Tipo:', file.type);
+          
+          // Verificar tamanho do arquivo (máximo 10MB)
+          if (file.size > 10 * 1024 * 1024) {
+            alert('Arquivo muito grande. Selecione uma imagem menor que 10MB.');
+            return;
+          }
+          
+          console.log('Arquivo selecionado:', file.name, 'Tamanho:', file.size);
           
           const reader = new FileReader();
           reader.onload = (e) => {
             const photoData = e.target?.result as string;
-            console.log('Foto carregada com sucesso!');
-            console.log('Tamanho da foto:', photoData.length);
-            onPhotoSelect(photoData);
+            console.log('Foto carregada, otimizando...');
+            
+            // Otimizar a imagem
+            optimizeImage(photoData).then(optimizedData => {
+              console.log('Foto otimizada com sucesso');
+              onPhotoSelect(optimizedData);
+            }).catch(error => {
+              console.error('Erro ao otimizar:', error);
+              onPhotoSelect(photoData); // Usar original se falhar
+            });
           };
-          reader.onerror = (error) => {
-            console.error('Erro ao ler arquivo:', error);
-            alert('Erro ao carregar imagem. Tente novamente.');
+          reader.onerror = () => {
+            alert('Erro ao ler o arquivo de imagem.');
           };
           reader.readAsDataURL(file);
         }
         
         // Limpar o input temporário
-        document.body.removeChild(tempInput);
+        if (document.body.contains(tempInput)) {
+          document.body.removeChild(tempInput);
+        }
       };
       
       // Adicionar ao DOM e clicar
       document.body.appendChild(tempInput);
       tempInput.click();
-      console.log('Input temporário criado e clicado');
       
     } catch (error) {
       console.error('Erro ao abrir galeria:', error);
       alert('Erro ao abrir galeria. Tente novamente.');
     }
+  };
+
+  // Função para otimizar imagens
+  const optimizeImage = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          reject(new Error('Contexto do canvas não disponível'));
+          return;
+        }
+
+        // Calcular novas dimensões (máximo 1920x1080)
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let { width, height } = img;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const aspectRatio = width / height;
+          if (width > height) {
+            width = maxWidth;
+            height = maxWidth / aspectRatio;
+          } else {
+            height = maxHeight;
+            width = maxHeight * aspectRatio;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Desenhar imagem redimensionada
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Converter para data URL com qualidade otimizada
+        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(optimizedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+      img.src = dataUrl;
+    });
   };
 
 
