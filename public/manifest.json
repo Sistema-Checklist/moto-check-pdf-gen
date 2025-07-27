@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#7c3aed",
+  "background_color": "#4285f4",
+  "theme_color": "#4285f4",
   "categories": ["business", "productivity", "utilities"],
   "lang": "pt-BR",
   "dir": "ltr",
@@ -42,7 +42,7 @@
       "name": "Novo Checklist",
       "short_name": "Checklist",
       "description": "Criar um novo checklist de vistoria",
-      "url": "/?tab=checklist",
+      "url": "/checklist",
       "icons": [
         {
           "src": "/icons/icon-192x192.svg",
@@ -51,10 +51,22 @@
       ]
     },
     {
-      "name": "Gerenciar Locatários",
-      "short_name": "Locatários",
-      "description": "Gerenciar lista de locatários",
-      "url": "/?tab=locatarios",
+      "name": "Ver Agendamentos",
+      "short_name": "Agendamentos",
+      "description": "Visualizar agendamentos de vistoria",
+      "url": "/agendamentos",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Painel Admin",
+      "short_name": "Admin",
+      "description": "Acessar painel administrativo",
+      "url": "/admin",
       "icons": [
         {
           "src": "/icons/icon-192x192.svg",
@@ -65,18 +77,21 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/desktop-1.png",
+      "src": "/screenshots/desktop-checklist.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Tela principal do CheckSystem"
+      "label": "Tela de checklist do CheckSystem"
     },
     {
-      "src": "/screenshots/mobile-1.png",
+      "src": "/screenshots/mobile-checklist.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Checklist no mobile"
+      "label": "Checklist responsivo no mobile"
     }
-  ]
-} 
+  ],
+  "display_override": ["window-controls-overlay", "standalone"],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

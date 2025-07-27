@@ -174,4 +174,56 @@ div[style*="Edit with Lovable"],
   .photo-upload-area {
     @apply border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors duration-200 cursor-pointer;
   }
+
+  /* PWA Mobile Optimizations */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .mobile-button {
+    @apply min-h-[44px] px-4 py-3 text-base font-medium touch-manipulation;
+  }
+
+  .mobile-input {
+    @apply min-h-[44px] px-4 py-3 text-base touch-manipulation;
+  }
+
+  .mobile-card {
+    @apply mx-4 sm:mx-0 rounded-xl shadow-lg border border-border/50;
+  }
+
+  /* Touch-friendly interactions */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Mobile responsive grid */
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Prevent zoom on input focus */
+  .no-zoom {
+    @apply text-base;
+  }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Ensure minimum touch target sizes */
+  button, .button, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Improve spacing on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Better mobile typography */
+  h1 { font-size: 2rem; line-height: 2.5rem; }
+  h2 { font-size: 1.5rem; line-height: 2rem; }
+  h3 { font-size: 1.25rem; line-height: 1.75rem; }
 }

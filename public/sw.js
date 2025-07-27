@@ -1,11 +1,15 @@
-const CACHE_NAME = 'checksystem-v1.0.0';
+const CACHE_NAME = 'checksystem-v2.0.0';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/icons/icon-16x16.svg',
+  '/icons/icon-32x32.svg',
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg',
+  '/login',
+  '/checklist',
+  '/agendamentos',
+  '/admin'
 ];
 
 // Install event
@@ -62,8 +66,8 @@ function doBackgroundSync() {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Nova notificação do CheckSystem',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: '/icons/icon-192x192.svg',
+    badge: '/icons/icon-32x32.svg',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -73,14 +77,17 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Abrir App',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-32x32.svg'
       },
       {
         action: 'close',
         title: 'Fechar',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-32x32.svg'
       }
-    ]
+    ],
+    tag: 'checksystem-notification',
+    requireInteraction: false,
+    silent: false
   };
 
   event.waitUntil(
