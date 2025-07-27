@@ -1055,6 +1055,48 @@ Por favor, entre em contato para confirmar o agendamento.`;
     }
   };
 
+  // Função para limpar todos os dados da vistoria
+  const handleLimparVistoria = () => {
+    if (confirm('Tem certeza que deseja limpar todos os dados da vistoria? Esta ação não pode ser desfeita.')) {
+      // Limpar os radio buttons do DOM
+      const radioButtons = document.querySelectorAll('input[type="radio"]');
+      radioButtons.forEach(radio => {
+        (radio as HTMLInputElement).checked = false;
+      });
+      
+      // Limpar estados
+      setFormState({});
+      setVistoriadorSignature("");
+      setLocatarioSignature("");
+      setFotosGeraisFrontal([]);
+      setFotosGeraisTraseira([]);
+      setFotosGeraisLateralEsquerda([]);
+      setFotosGeraisLateralDireita([]);
+      setFotosPneuDianteiro([]);
+      setFotosPneuTraseiro([]);
+      setFotosFreios([]);
+      setFotosFarolDianteiro([]);
+      setFotosLanternaTraseira([]);
+      setFotosSistemaSetas([]);
+      setFotosSistemaBuzina([]);
+      setFotosMotor([]);
+      setFotosTransmissao([]);
+      setFotosSuspensaoDianteira([]);
+      setFotosSuspensaoTraseira([]);
+      setFotosCarroceria([]);
+      setFotosObservacoesFinais([]);
+      setFotosKmAtual([]);
+      
+      // Limpar observações
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach(textarea => {
+        (textarea as HTMLTextAreaElement).value = '';
+      });
+      
+      alert('Todos os dados da vistoria foram limpos com sucesso!');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50">
       <div className="container mx-auto p-4 max-w-4xl">
@@ -1562,11 +1604,22 @@ Por favor, entre em contato para confirmar o agendamento.`;
           </CardContent>
         </Card>
           {/* Checklist virá aqui nas próximas etapas */}
-          <div className="text-center">
-            <Button type="submit" className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
-              <Download className="w-5 h-5 mr-2" />
-              Download Vistoria
-            </Button>
+          <div className="text-center space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                <Download className="w-5 h-5 mr-2" />
+                Download Vistoria
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handleLimparVistoria}
+                variant="outline"
+                className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600 px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Trash2 className="w-5 h-5 mr-2" />
+                Limpar Vistoria
+              </Button>
+            </div>
           </div>
         </form>
       )}
