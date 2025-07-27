@@ -535,6 +535,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
           type="radio" 
           name={name} 
           value="bom"
+          checked={formState[name] === 'bom'}
+          onChange={() => handleStateChange(name, 'bom')}
           className="sr-only peer" 
         />
         <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-green-50 to-emerald-50 peer-checked:border-green-300 peer-checked:bg-gradient-to-br peer-checked:from-green-100 peer-checked:to-emerald-100 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -547,6 +549,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
           type="radio" 
           name={name} 
           value="regular"
+          checked={formState[name] === 'regular'}
+          onChange={() => handleStateChange(name, 'regular')}
           className="sr-only peer" 
         />
         <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-yellow-50 to-amber-50 peer-checked:border-yellow-300 peer-checked:bg-gradient-to-br peer-checked:from-yellow-100 peer-checked:to-amber-100 hover:from-yellow-100 hover:to-amber-100 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -559,6 +563,8 @@ Por favor, entre em contato para confirmar o agendamento.`;
           type="radio" 
           name={name} 
           value="necessita_troca"
+          checked={formState[name] === 'necessita_troca'}
+          onChange={() => handleStateChange(name, 'necessita_troca')}
           className="sr-only peer" 
         />
         <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-transparent bg-gradient-to-br from-red-50 to-pink-50 peer-checked:border-red-300 peer-checked:bg-gradient-to-br peer-checked:from-red-100 peer-checked:to-pink-100 hover:from-red-100 hover:to-pink-100 transition-all duration-200 shadow-sm hover:shadow-md">
