@@ -39,17 +39,16 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    // Configurar canvas com densidade de pixels adequada
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
+    // Configurar tamanho fixo do canvas
+    canvas.width = 400;
+    canvas.height = 150;
     
-    context.scale(dpr, dpr);
-    context.strokeStyle = '#000';
-    context.lineWidth = 2;
+    // Preencher com fundo branco
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    context.strokeStyle = '#000000';
+    context.lineWidth = 3;
     context.lineCap = 'round';
     context.lineJoin = 'round';
 
@@ -59,18 +58,18 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
     const handleMouseDown = (e: MouseEvent) => {
       setIsDrawing(true);
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
       context.beginPath();
-      context.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      context.moveTo(x, y);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDrawing) return;
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      context.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      context.lineTo(x, y);
       context.stroke();
     };
 
@@ -88,10 +87,10 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       setIsDrawing(true);
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
       context.beginPath();
-      context.moveTo((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+      context.moveTo(x, y);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -99,9 +98,9 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
       if (!isDrawing) return;
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      context.lineTo((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+      const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+      context.lineTo(x, y);
       context.stroke();
     };
 
