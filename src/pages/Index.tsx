@@ -879,15 +879,6 @@ Por favor, entre em contato para confirmar o agendamento.`;
           
           try {
             pdf.addImage(photo, 'JPEG', x, y, photoWidth, photoHeight);
-            
-            // Número da foto
-            pdf.setFillColor(124, 58, 237);
-            pdf.circle(x + photoWidth - 8, y + 8, 4, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(8);
-            pdf.setFont(undefined, 'bold');
-            pdf.text((index + 1).toString(), x + photoWidth - 8, y + 10, { align: 'center' });
-            pdf.setTextColor(0, 0, 0);
           } catch (error) {
             console.warn(`Erro ao adicionar foto ${index + 1}:`, error);
             // Placeholder para foto com erro
