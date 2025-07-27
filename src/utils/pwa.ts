@@ -1,12 +1,45 @@
 // PWA Utilities
 export const isPWAInstalled = (): boolean => {
-  return window.matchMedia('(display-mode: standalone)').matches || 
-         (window.navigator as any).standalone === true;
+  // Verificações mais robustas para detecção de instalação
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isIOSStandalone = (window.navigator as any).standalone === true;
+  const isWebAPK = document.referrer.includes('android-app://');
+  const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+  const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
+  
+  const installed = isStandalone || isIOSStandalone || isWebAPK || isFullscreen || isMinimalUI;
+  
+  console.log('PWA Installation Check:', {
+    isStandalone,
+    isIOSStandalone,
+    isWebAPK,
+    isFullscreen,
+    isMinimalUI,
+    installed,
+    userAgent: navigator.userAgent
+  });
+  
+  return installed;
 };
 
 export const isMobileDevice = (): boolean => {
-  return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-         window.innerWidth <= 768;
+  const userAgent = navigator.userAgent;
+  const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(userAgent);
+  const isSmallScreen = window.innerWidth <= 768;
+  const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  const isMobile = isMobileUA || (isSmallScreen && hasTouchScreen);
+  
+  console.log('Mobile Device Check:', {
+    userAgent,
+    isMobileUA,
+    isSmallScreen,
+    hasTouchScreen,
+    isMobile,
+    innerWidth: window.innerWidth
+  });
+  
+  return isMobile;
 };
 
 export const isIOS = (): boolean => {
@@ -18,7 +51,20 @@ export const isAndroid = (): boolean => {
 };
 
 export const canInstallPWA = (): boolean => {
-  return !isPWAInstalled() && isMobileDevice();
+  const installed = isPWAInstalled();
+  const mobile = isMobileDevice();
+  const dismissed = wasInstallPromptDismissed();
+  
+  const canInstall = !installed && mobile && !dismissed;
+  
+  console.log('Can Install PWA Check:', {
+    installed,
+    mobile,
+    dismissed,
+    canInstall
+  });
+  
+  return canInstall;
 };
 
 // Storage para controlar quando mostrar o prompt

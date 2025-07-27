@@ -12,6 +12,7 @@ import PhotoCapture from "@/components/PhotoCapture";
 import PhotoSection from "@/components/PhotoSection";
 import InstallPrompt from "@/components/InstallPrompt";
 import { supabase } from "@/integrations/supabase/client";
+import { canInstallPWA, wasInstallPromptShown, markInstallPromptShown, markInstallPromptDismissed } from "@/utils/pwa";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -80,35 +81,45 @@ const tipoManutencaoOptions = [
   { value: "troca_oleo", label: "Troca de Óleo" },
 ];
 
-// Hook para pop-up de instalação PWA
-function usePWAPrompt() {
+// Hook personalizado para mostrar prompt de instalação PWA
+const usePWAPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    // Verificar se o app já está instalado
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
-                       (window.navigator as any).standalone === true ||
-                       document.referrer.includes('android-app://');
+    const checkPWAPrompt = () => {
+      console.log('Checking PWA prompt conditions...');
+      
+      // Usar as funções utilitárias do pwa.ts
+      const canInstall = canInstallPWA();
+      const wasShown = wasInstallPromptShown();
+      
+      console.log('PWA Prompt Check:', {
+        canInstall,
+        wasShown,
+        willShow: canInstall && !wasShown
+      });
 
-    // Se já estiver instalado, não mostrar o prompt
-    if (isInstalled) {
-      setShowPrompt(false);
-      return;
-    }
-
-    // Mostrar prompt após 3 segundos apenas em dispositivos móveis e se não estiver instalado
-    const timer = setTimeout(() => {
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && !isInstalled) {
-        setShowPrompt(true);
+      // Mostrar prompt apenas se pode instalar e ainda não foi mostrado
+      if (canInstall && !wasShown) {
+        setTimeout(() => {
+          console.log('Showing PWA install prompt');
+          setShowPrompt(true);
+          markInstallPromptShown();
+        }, 3000); // Aguardar 3 segundos
       }
-    }, 3000);
+    };
 
-    return () => clearTimeout(timer);
+    checkPWAPrompt();
   }, []);
 
-  return { showPrompt, setShowPrompt };
-}
+  const hidePrompt = () => {
+    console.log('Hiding PWA prompt');
+    setShowPrompt(false);
+    markInstallPromptDismissed();
+  };
+
+  return { showPrompt, hidePrompt };
+};
 
 export default function Index() {
   const [user, setUser] = useState<any>(null);
@@ -1176,9 +1187,9 @@ Por favor, entre em contato para confirmar o agendamento.`;
         </div>
 
         {/* Pop-up de instalação PWA */}
-              {pwa.showPrompt && (
-        <InstallPrompt onClose={() => pwa.setShowPrompt(false)} />
-      )}
+        {pwa.showPrompt && (
+          <InstallPrompt onClose={pwa.hidePrompt} />
+        )}
 
         {/* Abas responsivas */}
         <nav className="bg-white rounded-xl p-2 mb-6 shadow-sm border border-violet-100">
