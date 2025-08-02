@@ -7,7 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, User, Phone } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, Phone, Check, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +18,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [credentialsSaved, setCredentialsSaved] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -31,26 +34,48 @@ export default function Login() {
   });
 
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Funções para gerenciar credenciais salvas
   const saveCredentials = (email: string, password: string) => {
     try {
+      console.log('💾 Salvando credenciais para:', email);
+      
       const credentials = {
         email,
         password: btoa(password), // Base64 encoding simples
         expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 dias
       };
+      
       localStorage.setItem('checkSystem_savedCredentials', JSON.stringify(credentials));
       localStorage.setItem('checkSystem_rememberMe', 'true');
+      
+      setCredentialsSaved(true);
+      console.log('✅ Credenciais salvas com sucesso');
+      
+      toast({
+        title: "Acesso salvo",
+        description: "Suas credenciais foram salvas por 30 dias",
+        duration: 3000,
+      });
     } catch (error) {
-      console.error('Erro ao salvar credenciais:', error);
+      console.error('❌ Erro ao salvar credenciais:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar suas credenciais",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
   const loadSavedCredentials = () => {
     try {
+      console.log('🔄 Carregando credenciais salvas...');
+      
       const savedRememberMe = localStorage.getItem('checkSystem_rememberMe');
       if (savedRememberMe === 'true') {
+        console.log('📱 RememberMe está ativo');
         setRememberMe(true);
         
         const savedCredentials = localStorage.getItem('checkSystem_savedCredentials');
@@ -59,26 +84,51 @@ export default function Login() {
           
           // Verificar se não expirou
           if (credentials.expiry && Date.now() < credentials.expiry) {
+            console.log('✅ Credenciais válidas encontradas para:', credentials.email);
             setLoginForm({
               email: credentials.email || "",
               password: credentials.password ? atob(credentials.password) : ""
             });
+            setCredentialsSaved(true);
+            
+            const daysLeft = Math.ceil((credentials.expiry - Date.now()) / (24 * 60 * 60 * 1000));
+            toast({
+              title: "Credenciais carregadas",
+              description: `Suas credenciais foram carregadas (${daysLeft} dias restantes)`,
+              duration: 3000,
+            });
           } else {
-            // Limpar credenciais expiradas
+            console.log('⏰ Credenciais expiradas, limpando...');
             clearSavedCredentials();
           }
         }
+      } else {
+        console.log('📱 RememberMe não está ativo');
       }
     } catch (error) {
-      console.error('Erro ao carregar credenciais:', error);
+      console.error('❌ Erro ao carregar credenciais:', error);
       clearSavedCredentials();
+      toast({
+        title: "Erro ao carregar",
+        description: "Erro ao carregar credenciais salvas",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
   const clearSavedCredentials = () => {
+    console.log('🗑️ Limpando credenciais salvas...');
     localStorage.removeItem('checkSystem_savedCredentials');
     localStorage.removeItem('checkSystem_rememberMe');
     setRememberMe(false);
+    setCredentialsSaved(false);
+    
+    toast({
+      title: "Credenciais removidas",
+      description: "Suas credenciais salvas foram removidas",
+      duration: 3000,
+    });
   };
 
   // Carregar credenciais ao montar o componente
@@ -274,8 +324,10 @@ export default function Login() {
 
         // Salvar credenciais se o checkbox estiver marcado
         if (rememberMe) {
+          console.log('💾 Salvando credenciais após login bem-sucedido');
           saveCredentials(loginForm.email, loginForm.password);
-        } else {
+        } else if (credentialsSaved) {
+          console.log('🗑️ Removendo credenciais após desmarcação');
           clearSavedCredentials();
         }
 
@@ -424,15 +476,46 @@ export default function Login() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
-                    Salvar acesso
-                  </Label>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => {
+                        const isChecked = checked as boolean;
+                        setRememberMe(isChecked);
+                        console.log('📱 RememberMe alterado para:', isChecked);
+                        
+                        // Se desmarcou e tinha credenciais salvas, limpar
+                        if (!isChecked && credentialsSaved) {
+                          clearSavedCredentials();
+                        }
+                      }}
+                    />
+                    <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                      Salvar acesso (30 dias)
+                    </Label>
+                  </div>
+                  
+                  {credentialsSaved && (
+                    <div className="flex items-center space-x-1 text-green-600">
+                      <Check className="h-3 w-3" />
+                      <span className="text-xs">Salvo</span>
+                    </div>
+                  )}
+                  
+                  {credentialsSaved && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSavedCredentials}
+                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
                 </div>
 
                 {error && (
@@ -573,6 +656,7 @@ export default function Login() {
           </Tabs>
         </CardContent>
       </Card>
+      <Toaster />
     </div>
   );
-} 
+}
