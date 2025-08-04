@@ -20,7 +20,6 @@ const TABS = [
   { key: "checklist", label: "Checklist", icon: <ClipboardListIcon className="w-5 h-5" /> },
   { key: "locatarios", label: "Locatários", icon: <UserIcon className="w-5 h-5" /> },
   { key: "motos", label: "Motos", icon: <BikeIcon className="w-5 h-5" /> },
-  { key: "agendamento", label: "Agendamento", icon: <CalendarIcon className="w-5 h-5" /> },
 ];
 
 const mockLocatarios = [
