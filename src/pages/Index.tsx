@@ -166,20 +166,7 @@ export default function Index() {
   });
   const [editMotoIdx, setEditMotoIdx] = useState<number | null>(null);
 
-  const [agendamentos, setAgendamentos] = useState([]);
-  const [showAgendamentoForm, setShowAgendamentoForm] = useState(false);
-  const [agendamentoForm, setAgendamentoForm] = useState({
-    nome: "",
-    telefone: "",
-    placa: "",
-    tipo: "",
-    data: "",
-    horario: "",
-    obs: "",
-    status: "pendente",
-  });
-  const [filtroStatus, setFiltroStatus] = useState("");
-  const [filtroData, setFiltroData] = useState("");
+  // Agendamento removido conforme solicitado
 
   const [vistoriadorSignature, setVistoriadorSignature] = useState("");
   const [locatarioSignature, setLocatarioSignature] = useState("");
@@ -218,16 +205,7 @@ export default function Index() {
     }));
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const locRg = params.get("locatario");
-    if (params.get("agendamento") === "1" && locRg) {
-      const loc = locatarios.find(l => l.rg === locRg);
-      if (loc) {
-        setAgendamentoForm(f => ({ ...f, nome: loc.nome }));
-      }
-    }
-  }, [location.search, locatarios]);
+  // Agendamento removido
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -485,39 +463,7 @@ export default function Index() {
     setShowMotoForm(false);
   }
 
-  function handleAgendamentoChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setAgendamentoForm({ ...agendamentoForm, [e.target.name]: e.target.value });
-  }
-  function handleEnviarAgendamento(e: React.FormEvent) {
-    e.preventDefault();
-    setAgendamentos([
-      ...agendamentos,
-      { ...agendamentoForm, status: "pendente" },
-    ]);
-
-    setShowAgendamentoForm(false);
-    setAgendamentoForm({ nome: "", telefone: "", placa: "", tipo: "", data: "", horario: "", obs: "", status: "pendente" });
-
-    // Abrir WhatsApp automaticamente
-    if (userProfile?.whatsapp) {
-      const tipoManutencao = tipoManutencaoOptions.find(opt => opt.value === agendamentoForm.tipo)?.label || agendamentoForm.tipo;
-      const mensagem = `Olá! Recebi uma nova solicitação de agendamento:
-
-👤 Nome: ${agendamentoForm.nome}
-📱 Telefone: ${agendamentoForm.telefone}
-🏍️ Placa: ${agendamentoForm.placa}
-🔧 Tipo: ${tipoManutencao}
-📅 Data: ${agendamentoForm.data}
-⏰ Horário: ${agendamentoForm.horario}
-${agendamentoForm.obs ? `📝 Observações: ${agendamentoForm.obs}` : ''}
-
-Por favor, entre em contato para confirmar o agendamento.`;
-
-      const whatsappNumber = userProfile.whatsapp.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensagem)}`;
-      window.open(whatsappUrl, '_blank');
-    }
-  }
+  // Funções de agendamento removidas completamente
 
   // Função para gerar link público único
   function handleGerarLinkPublico() {
@@ -1869,138 +1815,7 @@ Por favor, entre em contato para confirmar o agendamento.`;
           </Card>
         </div>
       )}
-      {activeTab === "agendamento" && (
-        <div>
-          {/* Card de gerenciamento */}
-          <Card className="mb-4">
-            <CardContent className="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <CalendarIcon className="text-violet-600 w-7 h-7" /> Gerenciar Agendamentos
-              </div>
-              <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-                <Button variant="ghost" className="text-violet-600 flex items-center gap-1 font-semibold w-full md:w-auto" onClick={() => setShowAgendamentoForm(true)}>
-                  <PlusIcon className="w-5 h-5" /> Novo Agendamento Interno
-                </Button>
-                <Button variant="outline" className="w-full md:w-auto" onClick={handleGerarLinkPublico}>
-                  Copiar Link Público
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Lista de agendamentos */}
-          <Card className="mb-4">
-            <CardContent className="py-4">
-              <div className="text-xl font-bold text-gray-800 mb-4">Lista de Todos os Agendamentos</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label>Filtrar por Status</Label>
-                  <select className="w-full rounded border p-2 text-sm" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
-                    <option value="">Todos os Status</option>
-                    <option value="pendente">Pendente</option>
-                    <option value="concluido">Concluído</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>Filtrar por Data</Label>
-                  <select className="w-full rounded border p-2 text-sm" value={filtroData} onChange={e => setFiltroData(e.target.value)}>
-                    <option value="">Todas as Datas</option>
-                    {[...new Set(agendamentos.map(a => a.data))].filter(Boolean).map(data => (
-                      <option key={data} value={data}>{data}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {agendamentos.filter(a => (!filtroStatus || a.status === filtroStatus) && (!filtroData || a.data === filtroData)).length === 0 ? (
-                <div className="text-center text-gray-400">Nenhum agendamento encontrado.</div>
-              ) : (
-                <div className="space-y-4">
-                  {agendamentos.filter(a => (!filtroStatus || a.status === filtroStatus) && (!filtroData || a.data === filtroData)).map((a, idx) => (
-                    <div key={a.nome + a.telefone + a.data + idx} className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-gray-100">
-                      <div>
-                        <div className="font-semibold text-lg text-gray-800">{a.nome} - {a.placa}</div>
-                        <div className="text-sm text-gray-500">Tipo: {tipoManutencaoOptions.find(opt => opt.value === a.tipo)?.label || a.tipo} | Data: {a.data} | Horário: {a.horario}</div>
-                        <div className="text-xs text-gray-400">Telefone: {a.telefone}</div>
-                        {a.obs && <div className="text-xs text-gray-500 mt-1">Obs: {a.obs}</div>}
-                      </div>
-                      <div className="flex flex-col md:flex-row gap-2 md:items-center">
-                        <span className={`px-3 py-1 rounded text-xs font-semibold ${a.status === "pendente" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{a.status === "pendente" ? "Pendente" : "Concluído"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {/* Modal/aba exclusiva para solicitação de agendamento (link público ou interno) */}
-          {showAgendamentoForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-              <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 relative max-h-[90vh] overflow-y-auto">
-                <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={() => { setShowAgendamentoForm(false); }}>&times;</button>
-                <div className="text-2xl font-bold text-violet-700 mb-6 flex items-center gap-2"><CalendarIcon className="w-6 h-6" /> Agendar Manutenção da Moto</div>
-                <form onSubmit={handleEnviarAgendamento} className="space-y-4">
-                  <div>
-                    <Label htmlFor="nome">Seu Nome Completo <span className="text-red-500">*</span></Label>
-                    <Input id="nome" name="nome" required placeholder="Digite seu nome completo" value={agendamentoForm.nome} onChange={handleAgendamentoChange} disabled={!!location.search.includes('locatario=')} />
-                  </div>
-                  <div>
-                    <Label htmlFor="telefone">Telefone para Contato (WhatsApp) <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-2">
-                      <span><PhoneIcon className="w-4 h-4 text-gray-400" /></span>
-                      <Input id="telefone" name="telefone" required placeholder="(XX) XXXXX-XXXX" value={agendamentoForm.telefone} onChange={handleAgendamentoChange} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="placa">Placa da Moto <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-2">
-                      <span><BikeIcon className="w-4 h-4 text-gray-400" /></span>
-                      <Input id="placa" name="placa" required placeholder="ABC-1234 ou ABC1D23" value={agendamentoForm.placa} onChange={handleAgendamentoChange} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="tipo">Tipo de Manutenção <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-2">
-                      <span><Wrench className="w-4 h-4 text-gray-400" /></span>
-                      <select id="tipo" name="tipo" required value={agendamentoForm.tipo} onChange={handleAgendamentoChange} className="w-full rounded border p-2 text-sm">
-                        <option value="">Selecione o tipo de serviço</option>
-                        {tipoManutencaoOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="data">Data Desejada <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-2">
-                      <span><CalendarDays className="w-4 h-4 text-gray-400" /></span>
-                      <Input id="data" name="data" type="date" required value={agendamentoForm.data} onChange={handleAgendamentoChange} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="horario">Horário Desejado <span className="text-red-500">*</span></Label>
-                    <div className="flex items-center gap-2">
-                      <span><Clock className="w-4 h-4 text-gray-400" /></span>
-                      <Input id="horario" name="horario" type="time" required value={agendamentoForm.horario} onChange={handleAgendamentoChange} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="obs">Observações (opcional)</Label>
-                    <div className="flex items-center gap-2">
-                      <span><MessageSquare className="w-4 h-4 text-gray-400" /></span>
-                      <textarea id="obs" name="obs" placeholder="Descreva o problema ou detalhes adicionais aqui..." className="w-full rounded border p-2 text-sm" value={agendamentoForm.obs} onChange={handleAgendamentoChange} />
-                    </div>
-                  </div>
-                  <div className="pt-4 pb-2">
-                    <Button type="submit" className="w-full bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 text-white text-lg font-semibold flex items-center justify-center gap-2 py-3 rounded-lg shadow-lg">
-                      <span>Enviar Solicitação</span>
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Aba de agendamento removida conforme solicitado */}
       </div>
     </div>
   );
