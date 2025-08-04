@@ -70,7 +70,7 @@ export default function AdminPanel() {
       console.log('Buscando usuários...');
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('*, whatsapp')
         .order('created_at', { ascending: false });
 
       if (error) {

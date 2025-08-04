@@ -216,6 +216,7 @@ export type Database = {
           name: string
           phone: string | null
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
           company_logo?: string | null
@@ -228,6 +229,7 @@ export type Database = {
           name: string
           phone?: string | null
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
           company_logo?: string | null
@@ -240,6 +242,7 @@ export type Database = {
           name?: string
           phone?: string | null
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
