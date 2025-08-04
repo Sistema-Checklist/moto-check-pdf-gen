@@ -42,59 +42,44 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }: Crea
         return;
       }
 
-      // Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true, // Auto-confirmar email
+      // Chamar Edge Function para criar usuário
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password
+        }
       });
 
-      if (authError) {
-        console.error('Erro ao criar usuário:', authError);
+      if (error) {
+        console.error("Erro ao chamar function:", error);
         toast({
           title: "Erro ao criar usuário",
-          description: authError.message,
+          description: error.message,
           variant: "destructive",
         });
         return;
       }
 
-      if (authData.user) {
-        // Criar perfil na tabela user_profiles
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            {
-              user_id: authData.user.id,
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              is_approved: true, // Usuários criados pelo admin já são aprovados
-              is_frozen: false,
-              created_at: new Date().toISOString(),
-            }
-          ]);
-
-        if (profileError) {
-          console.error('Erro ao criar perfil:', profileError);
-          toast({
-            title: "Erro ao criar perfil",
-            description: "Usuário criado, mas houve erro ao criar o perfil",
-            variant: "destructive",
-          });
-          return;
-        }
-
+      if (!data.success) {
         toast({
-          title: "Usuário criado com sucesso",
-          description: `${formData.name} foi adicionado ao sistema`,
+          title: "Erro ao criar usuário",
+          description: data.error || "Erro desconhecido",
+          variant: "destructive",
         });
-
-        // Limpar formulário
-        setFormData({ name: "", email: "", phone: "", password: "" });
-        onUserCreated();
-        onClose();
+        return;
       }
+
+      toast({
+        title: "Usuário criado com sucesso",
+        description: `${formData.name} foi adicionado ao sistema`,
+      });
+
+      // Limpar formulário
+      setFormData({ name: "", email: "", phone: "", password: "" });
+      onUserCreated();
+      onClose();
     } catch (error) {
       console.error('Erro inesperado:', error);
       toast({

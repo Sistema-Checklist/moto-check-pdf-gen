@@ -43,30 +43,28 @@ export default function DeleteUserModal({ isOpen, onClose, onUserDeleted, user }
     setLoading(true);
 
     try {
-      // Primeiro, deletar da tabela user_profiles
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('user_id', user.user_id);
+      // Chamar Edge Function para deletar usuário
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: {
+          user_id: user.user_id,
+          email: user.email
+        }
+      });
 
-      if (profileError) {
-        console.error('Erro ao deletar perfil:', profileError);
+      if (error) {
+        console.error('Erro ao chamar function:', error);
         toast({
-          title: "Erro ao deletar perfil",
-          description: profileError.message,
+          title: "Erro ao deletar usuário",
+          description: error.message,
           variant: "destructive",
         });
         return;
       }
 
-      // Depois, deletar da tabela auth.users
-      const { error: authError } = await supabase.auth.admin.deleteUser(user.user_id);
-
-      if (authError) {
-        console.error('Erro ao deletar usuário auth:', authError);
+      if (!data.success) {
         toast({
           title: "Erro ao deletar usuário",
-          description: authError.message,
+          description: data.error || "Erro desconhecido",
           variant: "destructive",
         });
         return;
