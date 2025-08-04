@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Users, CheckCircle, XCircle, Snowflake, Search, LogOut, UserCheck, UserX, ArrowLeft } from "lucide-react";
+import { Users, CheckCircle, XCircle, Snowflake, Search, LogOut, UserCheck, UserX, ArrowLeft, UserPlus, Trash2 } from "lucide-react";
+import CreateUserModal from "@/components/CreateUserModal";
+import DeleteUserModal from "@/components/DeleteUserModal";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: number;
@@ -34,8 +37,12 @@ export default function AdminPanel() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showErrorMessage, setShowErrorMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
 
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     checkAdminAccess();
@@ -125,13 +132,38 @@ export default function AdminPanel() {
 
       if (error) {
         console.error('Erro ao descongelar usuário:', error);
+        toast({
+          title: "Erro",
+          description: "Erro ao descongelar usuário",
+          variant: "destructive",
+        });
         return;
       }
+
+      toast({
+        title: "Usuário descongelado",
+        description: "O usuário foi descongelado com sucesso",
+      });
 
       fetchUsers();
     } catch (error) {
       console.error('Erro ao descongelar usuário:', error);
     }
+  };
+
+  const handleDeleteUser = (user: UserProfile) => {
+    // Verificar se não é o admin
+    if (user.email === 'kauankg@hotmail.com') {
+      toast({
+        title: "Operação não permitida",
+        description: "O administrador principal não pode ser deletado",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUserToDelete(user);
+    setShowDeleteModal(true);
   };
 
 
@@ -503,7 +535,14 @@ export default function AdminPanel() {
                   className="pl-10"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Criar Nova Conta</span>
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleRefreshUsers}
@@ -710,7 +749,7 @@ export default function AdminPanel() {
                           </Button>
                         )}
 
-                        {user.is_frozen && (
+                         {user.is_frozen && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -719,6 +758,19 @@ export default function AdminPanel() {
                           >
                             <UserCheck className="h-4 w-4 mr-1" />
                             Descongelar
+                          </Button>
+                        )}
+
+                        {/* Botão de deletar usuário - apenas se não for o admin */}
+                        {user.email !== 'kauankg@hotmail.com' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteUser(user)}
+                            className="border-red-300 text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Deletar
                           </Button>
                         )}
                       </div>
@@ -752,6 +804,20 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modals */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onUserCreated={fetchUsers}
+      />
+
+      <DeleteUserModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onUserDeleted={fetchUsers}
+        user={userToDelete}
+      />
     </div>
   );
-} 
+}

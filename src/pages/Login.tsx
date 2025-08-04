@@ -3,34 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, User, Phone, Check, X } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [credentialsSaved, setCredentialsSaved] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: ""
-  });
-  
-  const [registerForm, setRegisterForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: ""
   });
 
   const navigate = useNavigate();
@@ -141,13 +130,6 @@ export default function Login() {
     setError("");
   };
 
-  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRegisterForm({ ...registerForm, [e.target.name]: e.target.value });
-    setError("");
-  };
-
-
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -228,9 +210,6 @@ export default function Login() {
         // Se é admin e não tem perfil, criar automaticamente
         if (data.user.email === 'kauankg@hotmail.com' && (!profile || error)) {
           console.log('Criando perfil admin para:', data.user.id);
-          console.log('Profile existe?', !!profile);
-          console.log('Profile error:', error);
-          console.log('User data:', data.user);
           
           try {
             const profileData = {
@@ -243,16 +222,6 @@ export default function Login() {
               created_at: new Date().toISOString(),
             };
             
-            console.log('Tentando inserir dados do admin:', profileData);
-            
-            // Primeiro, vamos verificar se conseguimos acessar a tabela
-            const { data: testData, error: testError } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .limit(1);
-            
-            console.log('Teste de acesso à tabela:', { testData, testError });
-            
             const { data: createData, error: createError } = await supabase
               .from('user_profiles')
               .insert([profileData]);
@@ -263,7 +232,6 @@ export default function Login() {
               // Se o erro for de conflito (perfil já existe), tentar upsert
               if (createError.code === '23505') {
                 console.log('Perfil já existe, tentando upsert...');
-                console.log('Tentando upsert do admin com dados:', profileData);
                 
                 const { error: upsertError } = await supabase
                   .from('user_profiles')
@@ -271,26 +239,21 @@ export default function Login() {
                     onConflict: 'user_id'
                   });
 
-                                 if (upsertError) {
-                   console.error('Erro no upsert:', upsertError);
-                   console.error('Tipo do erro upsert:', typeof upsertError);
-                 console.error('Propriedades do erro upsert:', Object.keys(upsertError || {}));
-                 setError("Erro ao configurar perfil de administrador: " + (upsertError?.message || upsertError?.details || JSON.stringify(upsertError) || 'Erro desconhecido'));
-                   await supabase.auth.signOut();
-                   return;
-                 }
-                             } else {
-                 console.error('Detalhes do erro:', createError);
-                 console.error('Tipo do erro:', typeof createError);
-                 console.error('Propriedades do erro:', Object.keys(createError || {}));
-                 setError("Erro ao configurar perfil de administrador: " + (createError?.message || createError?.details || JSON.stringify(createError) || 'Erro desconhecido'));
-                 await supabase.auth.signOut();
-                 return;
-               }
+                if (upsertError) {
+                  console.error('Erro no upsert:', upsertError);
+                  setError("Erro ao configurar perfil de administrador: " + (upsertError?.message || 'Erro desconhecido'));
+                  await supabase.auth.signOut();
+                  return;
+                }
+              } else {
+                console.error('Detalhes do erro:', createError);
+                setError("Erro ao configurar perfil de administrador: " + (createError?.message || 'Erro desconhecido'));
+                await supabase.auth.signOut();
+                return;
+              }
             }
 
             console.log('Perfil admin criado/atualizado com sucesso!');
-            // Se criou o perfil com sucesso, navegar direto
             navigate('/');
             return;
           } catch (catchError) {
@@ -340,76 +303,6 @@ export default function Login() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setError("As senhas não coincidem.");
-      setLoading(false);
-      return;
-    }
-
-    if (registerForm.password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: registerForm.email,
-        password: registerForm.password,
-        options: {
-          data: {
-            name: registerForm.name,
-            phone: registerForm.phone,
-          }
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-
-      if (data.user) {
-        // Criar perfil do usuário
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            {
-              user_id: data.user.id,
-              name: registerForm.name,
-              email: registerForm.email,
-              phone: registerForm.phone,
-              is_approved: false,
-              is_frozen: false,
-              created_at: new Date().toISOString(),
-            }
-          ]);
-
-        if (profileError) {
-          console.error('Erro ao criar perfil:', profileError);
-        }
-
-        setSuccess("Conta criada com sucesso! Aguarde a aprovação do administrador.");
-        setRegisterForm({
-          name: "",
-          email: "",
-          phone: "",
-          password: "",
-          confirmPassword: ""
-        });
-      }
-    } catch (error) {
-      setError("Erro ao criar conta. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -418,242 +311,117 @@ export default function Login() {
             CheckSystem
           </CardTitle>
           <p className="text-gray-600">Sistema eficiente para checklists de motos</p>
-          <p className="text-sm text-gray-500 mt-2">Faça login ou crie sua conta</p>
+          <p className="text-sm text-gray-500 mt-2">Acesso restrito a usuários autorizados</p>
         </CardHeader>
         <CardContent>
-          <Tabs value={isLogin ? "login" : "register"} onValueChange={(value) => setIsLogin(value === "login")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Registro</TabsTrigger>
-            </TabsList>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={loginForm.email}
+                  onChange={handleLoginChange}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
             
-            <TabsContent value="login" className="space-y-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={loginForm.email}
-                      onChange={handleLoginChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Sua senha"
-                      value={loginForm.password}
-                      onChange={handleLoginChange}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="rememberMe"
-                      checked={rememberMe}
-                      onCheckedChange={(checked) => {
-                        const isChecked = checked as boolean;
-                        setRememberMe(isChecked);
-                        console.log('📱 RememberMe alterado para:', isChecked);
-                        
-                        // Se desmarcou e tinha credenciais salvas, limpar
-                        if (!isChecked && credentialsSaved) {
-                          clearSavedCredentials();
-                        }
-                      }}
-                    />
-                    <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
-                      Salvar acesso (30 dias)
-                    </Label>
-                  </div>
-                  
-                  {credentialsSaved && (
-                    <div className="flex items-center space-x-1 text-green-600">
-                      <Check className="h-3 w-3" />
-                      <span className="text-xs">Salvo</span>
-                    </div>
-                  )}
-                  
-                  {credentialsSaved && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearSavedCredentials}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Limpar
-                    </Button>
-                  )}
-                </div>
-
-                {error && (
-                  <div className="text-red-500 text-sm text-center">{error}</div>
-                )}
-
+            <div>
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Sua senha"
+                  value={loginForm.password}
+                  onChange={handleLoginChange}
+                  className="pl-10 pr-10"
+                  required
+                />
                 <Button
-                  type="submit"
-                  className="w-full bg-violet-600 hover:bg-violet-700"
-                  disabled={loading}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  {loading ? "Entrando..." : "Entrar"}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
-                
+              </div>
+            </div>
 
-
-
-              </form>
-            </TabsContent>
-
-            <TabsContent value="register" className="space-y-4">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Nome Completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={registerForm.name}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked as boolean;
+                    setRememberMe(isChecked);
+                    console.log('📱 RememberMe alterado para:', isChecked);
+                    
+                    // Se desmarcou e tinha credenciais salvas, limpar
+                    if (!isChecked && credentialsSaved) {
+                      clearSavedCredentials();
+                    }
+                  }}
+                />
+                <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                  Salvar acesso (30 dias)
+                </Label>
+              </div>
+              
+              {credentialsSaved && (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <Check className="h-3 w-3" />
+                  <span className="text-xs">Salvo</span>
                 </div>
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={registerForm.email}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="phone">Telefone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="(11) 99999-9999"
-                      value={registerForm.phone}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Mínimo 6 caracteres"
-                      value={registerForm.password}
-                      onChange={handleRegisterChange}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Confirme sua senha"
-                      value={registerForm.confirmPassword}
-                      onChange={handleRegisterChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="text-red-500 text-sm text-center">{error}</div>
-                )}
-
-                {success && (
-                  <div className="text-green-500 text-sm text-center">{success}</div>
-                )}
-
+              )}
+              
+              {credentialsSaved && (
                 <Button
-                  type="submit"
-                  className="w-full bg-violet-600 hover:bg-violet-700"
-                  disabled={loading}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSavedCredentials}
+                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
-                  {loading ? "Criando conta..." : "Criar Conta"}
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
                 </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              )}
+            </div>
+
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full bg-violet-600 hover:bg-violet-700"
+              disabled={loading}
+            >
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
+          </form>
+          
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Apenas usuários autorizados pelo administrador podem acessar o sistema.
+            </p>
+          </div>
         </CardContent>
       </Card>
       <Toaster />
