@@ -136,167 +136,84 @@ export default function Login() {
     setError("");
 
     try {
+      console.log('Tentando fazer login com:', loginForm.email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       });
 
       if (error) {
-        // Se for email não confirmado e for o admin geral, tentar confirmar automaticamente
-        if (error.message.includes('Email not confirmed') && loginForm.email === 'kauankg@hotmail.com') {
-          try {
-            // Tentar confirmar o email automaticamente
-            const { data: confirmData, error: confirmError } = await supabase.auth.updateUser({
-              data: { email_confirmed: true }
-            });
-
-            if (!confirmError) {
-              // Tentar login novamente
-              const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-                email: loginForm.email,
-                password: loginForm.password,
-              });
-
-              if (!retryError && retryData.user) {
-                // Criar/atualizar perfil do admin se não existir (APENAS para o admin)
-                if (retryData.user.email === 'kauankg@hotmail.com') {
-                  const { error: profileError } = await supabase
-                    .from('user_profiles')
-                    .upsert([
-                      {
-                        user_id: retryData.user.id,
-                        name: 'Admin Geral',
-                        email: 'kauankg@hotmail.com',
-                        phone: '(11) 99999-9999',
-                        is_approved: true,
-                        is_frozen: false,
-                        created_at: new Date().toISOString(),
-                      }
-                    ], {
-                      onConflict: 'email'
-                    });
-
-                  if (!profileError) {
-                    navigate('/');
-                    return;
-                  }
-                }
-              }
-            }
-          } catch (confirmError) {
-            console.error('Erro ao confirmar email:', confirmError);
-          }
-        }
-        
+        console.error('Erro de autenticação:', error);
         setError(error.message);
         return;
       }
 
       if (data.user) {
-        // Verificar se o usuário está aprovado
-        const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
-
-        // Se não há perfil ou há erro (exceto para admin)
-        if ((error || !profile) && data.user.email !== 'kauankg@hotmail.com') {
-          setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
-          await supabase.auth.signOut();
+        console.log('Login bem-sucedido para:', data.user.email);
+        
+        // Se é o admin, não precisa verificar perfil - pode prosseguir direto
+        if (data.user.email === 'kauankg@hotmail.com') {
+          console.log('Admin logado com sucesso');
+          
+          // Salvar credenciais se marcado
+          if (rememberMe) {
+            saveCredentials(loginForm.email, loginForm.password);
+          } else if (credentialsSaved) {
+            clearSavedCredentials();
+          }
+          
+          navigate('/');
           return;
         }
 
-        // Se é admin e não tem perfil, criar automaticamente
-        if (data.user.email === 'kauankg@hotmail.com' && (!profile || error)) {
-          console.log('Criando perfil admin para:', data.user.id);
-          
-          try {
-            const profileData = {
-              user_id: data.user.id,
-              name: 'Admin Geral',
-              email: 'kauankg@hotmail.com',
-              phone: '(11) 99999-9999',
-              is_approved: true,
-              is_frozen: false,
-              created_at: new Date().toISOString(),
-            };
-            
-            const { data: createData, error: createError } = await supabase
-              .from('user_profiles')
-              .insert([profileData]);
+        // Para usuários normais, verificar se o perfil existe e está aprovado
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .single();
 
-            if (createError) {
-              console.error('Erro ao criar perfil admin:', createError);
-              
-              // Se o erro for de conflito (perfil já existe), tentar upsert
-              if (createError.code === '23505') {
-                console.log('Perfil já existe, tentando upsert...');
-                
-                const { error: upsertError } = await supabase
-                  .from('user_profiles')
-                  .upsert([profileData], {
-                    onConflict: 'user_id'
-                  });
-
-                if (upsertError) {
-                  console.error('Erro no upsert:', upsertError);
-                  setError("Erro ao configurar perfil de administrador: " + (upsertError?.message || 'Erro desconhecido'));
-                  await supabase.auth.signOut();
-                  return;
-                }
-              } else {
-                console.error('Detalhes do erro:', createError);
-                setError("Erro ao configurar perfil de administrador: " + (createError?.message || 'Erro desconhecido'));
-                await supabase.auth.signOut();
-                return;
-              }
-            }
-
-            console.log('Perfil admin criado/atualizado com sucesso!');
-            navigate('/');
-            return;
-          } catch (catchError) {
-            console.error('Erro inesperado ao criar perfil admin:', catchError);
-            setError("Erro inesperado ao configurar perfil de administrador.");
+          if (profileError || !profile) {
+            console.error('Perfil não encontrado:', profileError);
+            setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
             await supabase.auth.signOut();
             return;
           }
-        }
 
-        // Se não é admin e não tem perfil, erro
-        if (!profile) {
-          setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
+          // Verificar se o usuário está aprovado
+          if (!profile.is_approved) {
+            setError("Sua conta ainda não foi aprovada pelo administrador.");
+            await supabase.auth.signOut();
+            return;
+          }
+
+          // Verificar se o usuário está congelado
+          if (profile.is_frozen) {
+            setError("Sua conta foi congelada. Entre em contato com o administrador.");
+            await supabase.auth.signOut();
+            return;
+          }
+
+          console.log('Usuário comum logado e verificado');
+          
+          // Salvar credenciais se marcado
+          if (rememberMe) {
+            saveCredentials(loginForm.email, loginForm.password);
+          } else if (credentialsSaved) {
+            clearSavedCredentials();
+          }
+
+          navigate('/');
+        } catch (profileCheckError) {
+          console.error('Erro ao verificar perfil:', profileCheckError);
+          setError("Erro ao verificar perfil do usuário.");
           await supabase.auth.signOut();
-          return;
         }
-
-        // Verificar se o usuário está aprovado (exceto admin)
-        if (data.user.email !== 'kauankg@hotmail.com' && !profile.is_approved) {
-          setError("Sua conta ainda não foi aprovada pelo administrador.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Verificar se o usuário está congelado
-        if (profile.is_frozen) {
-          setError("Sua conta foi congelada. Entre em contato com o administrador.");
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Salvar credenciais se o checkbox estiver marcado
-        if (rememberMe) {
-          console.log('💾 Salvando credenciais após login bem-sucedido');
-          saveCredentials(loginForm.email, loginForm.password);
-        } else if (credentialsSaved) {
-          console.log('🗑️ Removendo credenciais após desmarcação');
-          clearSavedCredentials();
-        }
-
-        navigate('/');
       }
     } catch (error) {
+      console.error('Erro inesperado no login:', error);
       setError("Erro ao fazer login. Tente novamente.");
     } finally {
       setLoading(false);
