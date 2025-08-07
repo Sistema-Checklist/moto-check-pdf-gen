@@ -72,7 +72,7 @@ export default function AdminPanel() {
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*, whatsapp')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -82,15 +82,25 @@ export default function AdminPanel() {
           description: error.message || "Erro desconhecido",
           variant: "destructive",
         });
+        setUsers([]);
         return;
       }
 
       console.log('Usuários encontrados:', data);
-      setUsers(data || []);
-      toast({
-        title: "Lista atualizada",
-        description: `${data?.length || 0} usuários encontrados`,
-      });
+      const usersData = data || [];
+      setUsers(usersData);
+      
+      if (usersData.length > 0) {
+        toast({
+          title: "Lista atualizada",
+          description: `${usersData.length} usuários encontrados`,
+        });
+      } else {
+        toast({
+          title: "Lista vazia",
+          description: "Nenhum usuário encontrado",
+        });
+      }
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       toast({
@@ -98,6 +108,7 @@ export default function AdminPanel() {
         description: "Erro ao buscar usuários",
         variant: "destructive",
       });
+      setUsers([]);
     } finally {
       setLoading(false);
     }
