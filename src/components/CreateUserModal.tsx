@@ -78,8 +78,16 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }: Crea
 
       // Limpar formulário
       setFormData({ name: "", email: "", phone: "", password: "" });
+      
+      // Primeiro chamar onUserCreated para atualizar a lista
       onUserCreated();
-      onClose();
+      
+      // Pequeno delay para garantir que a lista seja atualizada antes de fechar o modal
+      setTimeout(() => {
+        onClose();
+      }, 500);
+      
+      console.log('✅ Novo usuário criado, lista será atualizada');
     } catch (error) {
       console.error('Erro inesperado:', error);
       toast({

@@ -321,7 +321,7 @@ export default function Login() {
                   }}
                 />
                 <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
-                  Salvar acesso (30 dias)
+                  Salvar acesso
                 </Label>
               </div>
               
