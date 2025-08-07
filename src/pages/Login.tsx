@@ -136,7 +136,7 @@ export default function Login() {
     setError("");
 
     try {
-      console.log('Tentando fazer login com:', loginForm.email);
+      console.log('🔑 Tentando fazer login com:', loginForm.email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
@@ -144,17 +144,25 @@ export default function Login() {
       });
 
       if (error) {
-        console.error('Erro de autenticação:', error);
-        setError(error.message);
+        console.error('❌ Erro de autenticação:', error);
+        if (error.message.includes('Invalid login credentials')) {
+          setError("Email ou senha incorretos. Verifique suas credenciais.");
+        } else if (error.message.includes('Email not confirmed')) {
+          setError("Email não confirmado. Verifique sua caixa de entrada.");
+        } else {
+          setError(`Erro de login: ${error.message}`);
+        }
         return;
       }
 
       if (data.user) {
-        console.log('Login bem-sucedido para:', data.user.email);
+        console.log('✅ Login bem-sucedido para:', data.user.email);
+        console.log('👤 User ID:', data.user.id);
+        console.log('📧 Email confirmado:', data.user.email_confirmed_at);
         
-        // Se é o admin, não precisa verificar perfil - pode prosseguir direto
+        // Para o admin, vamos direto para a home
         if (data.user.email === 'kauankg@hotmail.com') {
-          console.log('Admin logado com sucesso');
+          console.log('👑 Admin detectado - acesso liberado');
           
           // Salvar credenciais se marcado
           if (rememberMe) {
@@ -163,11 +171,18 @@ export default function Login() {
             clearSavedCredentials();
           }
           
+          toast({
+            title: "Login realizado",
+            description: "Bem-vindo ao sistema, admin!",
+            duration: 3000,
+          });
+          
           navigate('/');
           return;
         }
 
-        // Para usuários normais, verificar se o perfil existe e está aprovado
+        // Para usuários normais, verificar perfil
+        console.log('👤 Verificando perfil de usuário normal...');
         try {
           const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
@@ -176,14 +191,17 @@ export default function Login() {
             .single();
 
           if (profileError || !profile) {
-            console.error('Perfil não encontrado:', profileError);
+            console.error('❌ Perfil não encontrado:', profileError);
             setError("Perfil de usuário não encontrado. Entre em contato com o administrador.");
             await supabase.auth.signOut();
             return;
           }
 
+          console.log('📋 Perfil encontrado:', profile);
+
           // Verificar se o usuário está aprovado
           if (!profile.is_approved) {
+            console.log('⏳ Usuário não aprovado');
             setError("Sua conta ainda não foi aprovada pelo administrador.");
             await supabase.auth.signOut();
             return;
@@ -191,12 +209,13 @@ export default function Login() {
 
           // Verificar se o usuário está congelado
           if (profile.is_frozen) {
+            console.log('🧊 Usuário congelado');
             setError("Sua conta foi congelada. Entre em contato com o administrador.");
             await supabase.auth.signOut();
             return;
           }
 
-          console.log('Usuário comum logado e verificado');
+          console.log('✅ Usuário verificado e aprovado');
           
           // Salvar credenciais se marcado
           if (rememberMe) {
@@ -205,16 +224,22 @@ export default function Login() {
             clearSavedCredentials();
           }
 
+          toast({
+            title: "Login realizado",
+            description: "Bem-vindo ao sistema!",
+            duration: 3000,
+          });
+
           navigate('/');
         } catch (profileCheckError) {
-          console.error('Erro ao verificar perfil:', profileCheckError);
+          console.error('❌ Erro ao verificar perfil:', profileCheckError);
           setError("Erro ao verificar perfil do usuário.");
           await supabase.auth.signOut();
         }
       }
     } catch (error) {
-      console.error('Erro inesperado no login:', error);
-      setError("Erro ao fazer login. Tente novamente.");
+      console.error('💥 Erro inesperado no login:', error);
+      setError("Erro inesperado ao fazer login. Tente novamente.");
     } finally {
       setLoading(false);
     }
