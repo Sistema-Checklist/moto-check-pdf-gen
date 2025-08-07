@@ -69,11 +69,21 @@ serve(async (req) => {
 
     if (createError) {
       console.error('Error creating auth user:', createError)
-      throw createError
+      
+      // Handle specific error cases
+      if (createError.message && createError.message.includes('already been registered')) {
+        throw new Error(`O email ${email} já está sendo usado por outro usuário. Escolha um email diferente.`)
+      }
+      
+      if (createError.code === 'email_exists') {
+        throw new Error(`O email ${email} já está cadastrado no sistema. Use um email diferente.`)
+      }
+      
+      throw new Error(`Erro ao criar usuário: ${createError.message}`)
     }
 
     if (!authData.user) {
-      throw new Error('No user returned from auth creation')
+      throw new Error('Nenhum usuário retornado na criação da conta')
     }
 
     console.log('Auth user created:', authData.user.id)
