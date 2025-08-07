@@ -68,6 +68,8 @@ export default function AdminPanel() {
   const fetchUsers = async () => {
     try {
       console.log('Buscando usuários...');
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*, whatsapp')
@@ -75,13 +77,27 @@ export default function AdminPanel() {
 
       if (error) {
         console.error('Erro ao buscar usuários:', error);
+        toast({
+          title: "Erro ao carregar usuários",
+          description: error.message || "Erro desconhecido",
+          variant: "destructive",
+        });
         return;
       }
 
       console.log('Usuários encontrados:', data);
       setUsers(data || []);
+      toast({
+        title: "Lista atualizada",
+        description: `${data?.length || 0} usuários encontrados`,
+      });
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
+      toast({
+        title: "Erro inesperado",
+        description: "Erro ao buscar usuários",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
