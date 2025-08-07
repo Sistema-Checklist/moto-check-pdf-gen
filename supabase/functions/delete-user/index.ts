@@ -79,11 +79,11 @@ serve(async (req) => {
     console.log('User profile deleted')
 
     // Then, delete from auth.users
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
 
-    if (authError) {
-      console.error('Error deleting auth user:', authError)
-      throw authError
+    if (deleteError) {
+      console.error('Error deleting auth user:', deleteError)
+      throw deleteError
     }
 
     console.log('Auth user deleted successfully')
