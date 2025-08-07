@@ -72,7 +72,15 @@ const mockMotos: Moto[] = [
     ano: "2023",
     obs: "",
   },
-];
+]; 
+
+type UILocatario = {
+  id: string;
+  nome: string;
+  rg: string;
+  telefone: string | null;
+  selecionado?: boolean;
+};
 
 const tipoManutencaoOptions = [
   { value: "corretiva", label: "Corretiva" },
@@ -126,7 +134,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("checklist");
   const [showForm, setShowForm] = useState(false);
-  const [locatarios, setLocatarios] = useState(mockLocatarios);
+  const [locatarios, setLocatarios] = useState<UILocatario[]>([]);
   const [novoLoc, setNovoLoc] = useState({ nome: "", rg: "", telefone: "" });
   const [formState, setFormState] = useState<Record<string, string>>({});
   // Função para obter a data atual no formato YYYY-MM-DD
@@ -270,6 +278,33 @@ export default function Index() {
     setLoading(false);
   };
 
+  // Carregar locatários do Supabase para o usuário logado
+  const loadLocatarios = async () => {
+    const { data, error } = await supabase
+      .from('locatarios')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Erro ao carregar locatários:', error);
+      return;
+    }
+    setLocatarios(
+      data.map((d) => ({
+        id: d.id,
+        nome: d.nome_completo,
+        rg: d.rg,
+        telefone: d.telefone,
+        selecionado: false,
+      }))
+    );
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadLocatarios();
+    }
+  }, [user]);
+
   const handleStateChange = (id: string, value: string) => {
     setFormState((prevState) => ({ ...prevState, [id]: value }));
   };
@@ -281,12 +316,29 @@ export default function Index() {
   function handleNovoLocChange(e: React.ChangeEvent<HTMLInputElement>) {
     setNovoLoc({ ...novoLoc, [e.target.name]: e.target.value });
   }
-  function handleCadastrarLocatario(e: React.FormEvent) {
+  async function handleCadastrarLocatario(e: React.FormEvent) {
     e.preventDefault();
-    if (!novoLoc.nome || !novoLoc.rg || !novoLoc.telefone) return;
+    if (!novoLoc.nome || !novoLoc.rg || !novoLoc.telefone || !user) return;
+
+    const { data, error } = await supabase
+      .from('locatarios')
+      .insert({
+        nome_completo: novoLoc.nome,
+        rg: novoLoc.rg,
+        telefone: novoLoc.telefone,
+        user_id: user.id,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Erro ao cadastrar locatário:', error);
+      return;
+    }
+
     setLocatarios([
+      { id: data.id, nome: data.nome_completo, rg: data.rg, telefone: data.telefone, selecionado: false },
       ...locatarios,
-      { ...novoLoc, selecionado: false },
     ]);
     setNovoLoc({ nome: "", rg: "", telefone: "" });
     setShowForm(false);
@@ -296,7 +348,16 @@ export default function Index() {
     setShowForm(false);
   }
 
-  function handleExcluirLocatario(idx: number) {
+  async function handleExcluirLocatario(idx: number) {
+    const id = locatarios[idx]?.id;
+    if (!id) return;
+
+    const { error } = await supabase.from('locatarios').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao excluir locatário:', error);
+      return;
+    }
+
     setLocatarios(locatarios.filter((_, i) => i !== idx));
     if (editIdx === idx) {
       setEditIdx(null);
@@ -314,11 +375,30 @@ export default function Index() {
     setShowForm(true);
   }
 
-  function handleSalvarEdicao(e: React.FormEvent) {
+  async function handleSalvarEdicao(e: React.FormEvent) {
     e.preventDefault();
     if (editIdx === null) return;
+    const current = locatarios[editIdx];
+    if (!current?.id) return;
+
+    const { data, error } = await supabase
+      .from('locatarios')
+      .update({
+        nome_completo: novoLoc.nome,
+        rg: novoLoc.rg,
+        telefone: novoLoc.telefone,
+      })
+      .eq('id', current.id)
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Erro ao salvar edição do locatário:', error);
+      return;
+    }
+
     const novos = [...locatarios];
-    novos[editIdx] = { ...novos[editIdx], ...novoLoc };
+    novos[editIdx] = { ...novos[editIdx], nome: data.nome_completo, rg: data.rg, telefone: data.telefone };
     setLocatarios(novos);
     setEditIdx(null);
     setNovoLoc({ nome: "", rg: "", telefone: "" });
