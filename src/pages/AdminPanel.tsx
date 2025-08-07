@@ -551,22 +551,6 @@ export default function AdminPanel() {
                   <Search className="h-4 w-4" />
                   <span>Atualizar Lista</span>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleCheckMissingUsers}
-                  className="flex items-center space-x-2"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Verificar Usuários Ausentes</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleSetupAdmin}
-                  className="flex items-center space-x-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  <span>Configurar Conta Admin</span>
-                </Button>
               </div>
             </div>
 
