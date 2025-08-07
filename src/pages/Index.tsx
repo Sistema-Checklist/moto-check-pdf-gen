@@ -49,30 +49,22 @@ type Moto = {
   obs: string;
 };
 
-const mockMotos: Moto[] = [
-  {
-    modelo: "Honda CB 600F",
-    placa: "ABC-1234",
-    cor: "Vermelha",
-    km: "15000",
-    chassi: "9C6RG3150L0032664",
-    motor: "MTR123456789",
-    locatarioRg: "563105057",
-    ano: "2020",
-    obs: "",
-  },
-  {
-    modelo: "Factor 150 ED",
-    placa: "DVL-9C29",
-    cor: "Preta",
-    km: "57309",
-    chassi: "9C6RG3150L0012488",
-    motor: "MTR987654321",
-    locatarioRg: "632886997",
-    ano: "2023",
-    obs: "",
-  },
-]; 
+// Tipo para motos no UI (com id e campos extras não persistidos)
+type UIMoto = {
+  id: string;
+  locatarioRg?: string; // Apenas no UI (não persistido)
+  modelo: string;
+  placa: string;
+  cor: string;
+  ano?: string;        // Apenas no UI (não persistido)
+  km: string;
+  chassi: string;
+  motor: string;
+  obs?: string;        // Apenas no UI (não persistido)
+};
+
+// Tipo para criação/edição (sem id)
+type NewMoto = Omit<UIMoto, 'id'>;
 
 type UILocatario = {
   id: string;
@@ -160,8 +152,8 @@ export default function Index() {
   });
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showMotoForm, setShowMotoForm] = useState(false);
-  const [motos, setMotos] = useState<Moto[]>(mockMotos);
-  const [novaMoto, setNovaMoto] = useState<Moto>({
+  const [motos, setMotos] = useState<UIMoto[]>([]);
+  const [novaMoto, setNovaMoto] = useState<NewMoto>({
     locatarioRg: "",
     modelo: "",
     placa: "",
@@ -305,6 +297,38 @@ export default function Index() {
     }
   }, [user]);
 
+  // Carregar motos do Supabase
+  const loadMotos = async () => {
+    const { data, error } = await supabase
+      .from('motos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Erro ao carregar motos:', error);
+      return;
+    }
+    setMotos(
+      data.map((d) => ({
+        id: d.id,
+        modelo: d.modelo,
+        placa: d.placa,
+        cor: d.cor,
+        km: d.km_total !== null && d.km_total !== undefined ? String(d.km_total) : "",
+        chassi: d.numero_chassi || "",
+        motor: d.numero_motor || "",
+        locatarioRg: "",
+        ano: "",
+        obs: "",
+      }))
+    );
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadMotos();
+    }
+  }, [user]);
+
   const handleStateChange = (id: string, value: string) => {
     setFormState((prevState) => ({ ...prevState, [id]: value }));
   };
@@ -441,12 +465,34 @@ export default function Index() {
   function handleNovaMotoChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setNovaMoto({ ...novaMoto, [e.target.name]: e.target.value });
   }
-  function handleCadastrarMoto(e: React.FormEvent) {
+  async function handleCadastrarMoto(e: React.FormEvent) {
     e.preventDefault();
-    if (!novaMoto.locatarioRg || !novaMoto.modelo || !novaMoto.placa || !novaMoto.cor || !novaMoto.ano || !novaMoto.km || !novaMoto.chassi || !novaMoto.motor) return;
+    if (!novaMoto.locatarioRg || !novaMoto.modelo || !novaMoto.placa || !novaMoto.cor || !novaMoto.km || !novaMoto.chassi || !novaMoto.motor || !user) return;
+
+    const kmNumber = Number(novaMoto.km);
+
+    const { data, error } = await supabase
+      .from('motos')
+      .insert({
+        user_id: user.id,
+        modelo: novaMoto.modelo,
+        placa: novaMoto.placa,
+        cor: novaMoto.cor,
+        km_total: isNaN(kmNumber) ? null : kmNumber,
+        numero_chassi: novaMoto.chassi,
+        numero_motor: novaMoto.motor,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Erro ao cadastrar moto:', error);
+      return;
+    }
+
     setMotos([
+      { id: data.id, modelo: data.modelo, placa: data.placa, cor: data.cor, km: data.km_total !== null && data.km_total !== undefined ? String(data.km_total) : "", chassi: data.numero_chassi || "", motor: data.numero_motor || "", locatarioRg: novaMoto.locatarioRg, ano: novaMoto.ano, obs: novaMoto.obs },
       ...motos,
-      { ...novaMoto, ano: novaMoto.ano || "", obs: novaMoto.obs || "" },
     ]);
     setNovaMoto({ locatarioRg: "", modelo: "", placa: "", cor: "", ano: "", km: "", chassi: "", motor: "", obs: "" });
     setShowMotoForm(false);
@@ -456,7 +502,16 @@ export default function Index() {
     setShowMotoForm(false);
   }
 
-  function handleExcluirMoto(idx: number) {
+  async function handleExcluirMoto(idx: number) {
+    const id = motos[idx]?.id;
+    if (!id) return;
+
+    const { error } = await supabase.from('motos').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao excluir moto:', error);
+      return;
+    }
+
     setMotos(motos.filter((_, i) => i !== idx));
   }
 
@@ -477,11 +532,47 @@ export default function Index() {
     setEditMotoIdx(idx);
   }
 
-  function handleSalvarEdicaoMoto(e: React.FormEvent) {
+  async function handleSalvarEdicaoMoto(e: React.FormEvent) {
     e.preventDefault();
     if (editMotoIdx === null) return;
+
+    const current = motos[editMotoIdx];
+    if (!current?.id) return;
+
+    const kmNumber = Number(novaMoto.km);
+
+    const { data, error } = await supabase
+      .from('motos')
+      .update({
+        modelo: novaMoto.modelo,
+        placa: novaMoto.placa,
+        cor: novaMoto.cor,
+        km_total: isNaN(kmNumber) ? null : kmNumber,
+        numero_chassi: novaMoto.chassi,
+        numero_motor: novaMoto.motor,
+      })
+      .eq('id', current.id)
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Erro ao salvar edição da moto:', error);
+      return;
+    }
+
     const novas = [...motos];
-    novas[editMotoIdx] = { ...novaMoto };
+    novas[editMotoIdx] = {
+      ...novas[editMotoIdx],
+      modelo: data.modelo,
+      placa: data.placa,
+      cor: data.cor,
+      km: data.km_total !== null && data.km_total !== undefined ? String(data.km_total) : "",
+      chassi: data.numero_chassi || "",
+      motor: data.numero_motor || "",
+      locatarioRg: novaMoto.locatarioRg,
+      ano: novaMoto.ano,
+      obs: novaMoto.obs,
+    };
     setMotos(novas);
     setEditMotoIdx(null);
     setNovaMoto({ locatarioRg: "", modelo: "", placa: "", cor: "", ano: "", km: "", chassi: "", motor: "", obs: "" });
