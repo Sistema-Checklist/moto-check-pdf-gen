@@ -214,99 +214,43 @@ export default function Index() {
       return;
     }
 
-    // Verificar se o usuário está aprovado
+    console.log('✅ Usuário autenticado:', user.email);
+
+    // Para o admin, pular verificação de perfil
+    if (user.email === 'kauankg@hotmail.com') {
+      console.log('👑 Admin detectado - acesso liberado sem verificação de perfil');
+      setUser(user);
+      setUserProfile({
+        user_id: user.id,
+        name: 'Admin Geral',
+        email: 'kauankg@hotmail.com',
+        phone: '(11) 99999-9999',
+        company_name: 'CheckSystem',
+        is_approved: true,
+        is_frozen: false
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Para usuários normais, verificar perfil
+    console.log('👤 Verificando perfil de usuário normal...');
     const { data: profile, error } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    // Se não há perfil ou há erro (exceto para admin)
-    if ((error || !profile) && user.email !== 'kauankg@hotmail.com') {
-      console.log('Usuário sem perfil encontrado, redirecionando para login');
+    if (error || !profile) {
+      console.log('❌ Usuário sem perfil encontrado, redirecionando para login');
       await supabase.auth.signOut();
       navigate('/login');
       return;
     }
 
-    // Se é admin e não tem perfil, criar automaticamente
-    if (user.email === 'kauankg@hotmail.com' && (!profile || error)) {
-      console.log('Criando perfil admin para:', user.id);
-      
-      try {
-        const { data: createData, error: createError } = await supabase
-          .from('user_profiles')
-          .insert([{
-            user_id: user.id,
-            name: 'Admin Geral',
-            email: 'kauankg@hotmail.com',
-            phone: '(11) 99999-9999',
-            company_name: 'CheckSystem',
-            company_logo: '',
-            is_approved: true,
-            is_frozen: false,
-            created_at: new Date().toISOString(),
-          }]);
-
-        if (createError) {
-          console.error('Erro ao criar perfil admin:', createError);
-          
-          // Se o erro for de conflito (perfil já existe), tentar upsert
-          if (createError.code === '23505') {
-            console.log('Perfil já existe, tentando upsert...');
-            const { error: upsertError } = await supabase
-              .from('user_profiles')
-              .upsert([{
-                user_id: user.id,
-                name: 'Admin Geral',
-                email: 'kauankg@hotmail.com',
-                phone: '(11) 99999-9999',
-                company_name: 'CheckSystem',
-                company_logo: '',
-                is_approved: true,
-                is_frozen: false,
-                created_at: new Date().toISOString(),
-              }], {
-                onConflict: 'user_id'
-              });
-
-            if (upsertError) {
-              console.error('Erro no upsert:', upsertError);
-              await supabase.auth.signOut();
-              navigate('/login');
-              return;
-            }
-          } else {
-            await supabase.auth.signOut();
-            navigate('/login');
-            return;
-          }
-        }
-
-        console.log('Perfil admin criado/atualizado com sucesso!');
-        // Se criou o perfil com sucesso, continuar
-        setUser(user);
-        setLoading(false);
-        return;
-      } catch (catchError) {
-        console.error('Erro inesperado ao criar perfil admin:', catchError);
-        await supabase.auth.signOut();
-        navigate('/login');
-        return;
-      }
-    }
-
-    // Se não é admin e não tem perfil, erro
-    if (!profile) {
-      console.log('Usuário sem perfil encontrado, redirecionando para login');
-      await supabase.auth.signOut();
-      navigate('/login');
-      return;
-    }
-
-    // Verificar se o usuário está aprovado (exceto admin)
-    if (user.email !== 'kauankg@hotmail.com' && !profile.is_approved) {
-      console.log('Usuário não aprovado, redirecionando para login');
+    // Verificar se o usuário está aprovado
+    if (!profile.is_approved) {
+      console.log('⏳ Usuário não aprovado, redirecionando para login');
       await supabase.auth.signOut();
       navigate('/login');
       return;
@@ -314,12 +258,13 @@ export default function Index() {
 
     // Verificar se o usuário está congelado
     if (profile.is_frozen) {
-      console.log('Usuário congelado, redirecionando para login');
+      console.log('🧊 Usuário congelado, redirecionando para login');
       await supabase.auth.signOut();
       navigate('/login');
       return;
     }
 
+    console.log('✅ Usuário normal verificado e aprovado');
     setUser(user);
     setUserProfile(profile);
     setLoading(false);
