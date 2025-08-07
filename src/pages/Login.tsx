@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, Check, X } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -325,25 +325,6 @@ export default function Login() {
                 </Label>
               </div>
               
-              {credentialsSaved && (
-                <div className="flex items-center space-x-1 text-green-600">
-                  <Check className="h-3 w-3" />
-                  <span className="text-xs">Salvo</span>
-                </div>
-              )}
-              
-              {credentialsSaved && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearSavedCredentials}
-                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Limpar
-                </Button>
-              )}
             </div>
 
             {error && (
