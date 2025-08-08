@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import InstallPrompt from "@/components/InstallPrompt";
+import { isPWAInstalled, isAndroid } from "@/utils/pwa";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +23,8 @@ export default function Login() {
     email: "",
     password: ""
   });
+
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -245,10 +249,53 @@ export default function Login() {
     }
   };
 
+  const handleInstallApp = async () => {
+    try {
+      // Se já instalado, apenas informa
+      if (isPWAInstalled()) {
+        toast({ title: "Já instalado", description: "O app já está na sua tela inicial." });
+        return;
+      }
+
+      const w = window as any;
+      const hasDeferred = !!w.deferredPWAInstallPrompt;
+
+      if (isAndroid() && hasDeferred) {
+        w.deferredPWAInstallPrompt.prompt();
+        const { outcome } = await w.deferredPWAInstallPrompt.userChoice;
+        w.deferredPWAInstallPrompt = null;
+        if (outcome !== 'accepted') {
+          // Se o usuário recusou, mostramos instruções
+          setShowInstallPrompt(true);
+        }
+        return;
+      }
+
+      // iOS ou Android sem prompt nativo: mostrar instruções
+      setShowInstallPrompt(true);
+    } catch (e) {
+      console.error('Erro ao tentar instalar PWA:', e);
+      setShowInstallPrompt(true);
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md relative">
+        {/* Botão Instalar app - topo esquerdo */}
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="absolute left-3 top-3"
+          onClick={handleInstallApp}
+        >
+          <Download className="h-4 w-4" />
+          Instalar app
+        </Button>
         <CardHeader className="text-center">
+
           <CardTitle className="text-2xl font-bold text-violet-700">
             CheckSystem
           </CardTitle>
@@ -347,6 +394,9 @@ export default function Login() {
           </div>
         </CardContent>
       </Card>
+      {showInstallPrompt && (
+        <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+      )}
       <Toaster />
     </div>
   );
