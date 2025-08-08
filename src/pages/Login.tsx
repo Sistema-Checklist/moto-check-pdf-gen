@@ -283,24 +283,25 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md relative">
-        {/* Botão Instalar app - topo esquerdo */}
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="absolute left-3 top-3"
-          onClick={handleInstallApp}
-        >
-          <Download className="h-4 w-4" />
-          Instalar app
-        </Button>
-        <CardHeader className="text-center">
-
-          <CardTitle className="text-2xl font-bold text-violet-700">
-            CheckSystem
-          </CardTitle>
-          <p className="text-gray-600">Sistema eficiente para checklists de motos</p>
-          <p className="text-sm text-gray-500 mt-2">Acesso restrito a usuários autorizados</p>
+        <CardHeader className="space-y-2">
+          <div className="flex w-full justify-start">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleInstallApp}
+            >
+              <Download className="h-4 w-4" />
+              Instalar app
+            </Button>
+          </div>
+          <div className="text-center">
+            <CardTitle className="text-2xl font-bold text-violet-700">
+              CheckSystem
+            </CardTitle>
+            <p className="text-gray-600">Sistema eficiente para checklists de motos</p>
+            <p className="text-sm text-gray-500 mt-2">Acesso restrito a usuários autorizados</p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
