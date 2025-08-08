@@ -1,4 +1,7 @@
-const CACHE_NAME = 'checksystem-v2.1.0';
+
+const CACHE_NAME = 'checksystem-v2.2.0';
+const SUPABASE_HOST = 'hjwlkijchjmuzmydjchb.supabase.co';
+
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -12,11 +15,31 @@ const urlsToCache = [
   '/admin'
 ];
 
+// Util para decidir se devemos ignorar cache para a request
+function shouldBypassCache(req) {
+  try {
+    const url = new URL(req.url);
+    const isSupabase = url.hostname.includes(SUPABASE_HOST);
+    const hasAuthHeader =
+      req.headers.has('authorization') ||
+      req.headers.has('Authorization') ||
+      req.headers.has('apikey') ||
+      req.headers.has('Apikey');
+
+    const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+
+    // Nunca cachear chamadas do Supabase ou com cabeçalhos de autenticação/apikey
+    return isSupabase || hasAuthHeader || isMutation;
+  } catch {
+    return false;
+  }
+}
+
 // Install event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
+      console.log('[SW] Opened cache', CACHE_NAME);
       return cache.addAll(urlsToCache);
     }).then(() => self.skipWaiting())
   );
@@ -25,6 +48,17 @@ self.addEventListener('install', (event) => {
 // Fetch event
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+
+  // Ignorar cache para Supabase e qualquer request autenticada
+  if (shouldBypassCache(req)) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).catch(() => {
+        // Fallback se offline (retorna do cache caso exista, ex: assets estáticos)
+        return caches.match(req);
+      })
+    );
+    return;
+  }
 
   // Network-first para navegação/HTML para evitar versões antigas
   if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
@@ -59,7 +93,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
+            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -122,4 +156,4 @@ self.addEventListener('notificationclick', (event) => {
       clients.openWindow('/')
     );
   }
-}); 
+});
