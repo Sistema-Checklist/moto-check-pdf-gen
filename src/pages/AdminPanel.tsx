@@ -509,14 +509,14 @@ export default function AdminPanel() {
         </div>
       )}
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-background shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <Users className="h-8 w-8 text-violet-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Painel de Administração</h1>
+              <h1 className="text-2xl font-bold text-foreground">Painel de Administração</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-600">
                 Admin: {currentUser?.email}
               </span>
@@ -591,7 +591,7 @@ export default function AdminPanel() {
                 filteredUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="bg-white border rounded-lg p-4 flex items-center justify-between"
+                    className="bg-background border border-border rounded-lg p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
@@ -652,7 +652,7 @@ export default function AdminPanel() {
                                     )}
                                   </div>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex flex-wrap gap-2">
                                   <Button
                                     size="sm"
                                     onClick={() => handleSaveCompany(user.user_id)}
@@ -679,7 +679,7 @@ export default function AdminPanel() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex items-center space-x-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {user.company_logo && (
                                   <img 
                                     src={user.company_logo} 
@@ -712,9 +712,9 @@ export default function AdminPanel() {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {/* Status Indicators */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {user.is_approved ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -736,7 +736,7 @@ export default function AdminPanel() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {!user.is_approved && (
                           <Button
                             size="sm"

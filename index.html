@@ -112,27 +112,11 @@
         });
       }
 
-      // PWA Install functionality
-      let deferredPrompt;
-      let installButton;
+      // PWA installation handled in React (InstallPrompt component)
 
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('beforeinstallprompt fired');
-        e.preventDefault();
-        deferredPrompt = e;
-        
-        // Show install button or prompt
-        const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
-                           window.navigator.standalone === true;
-        
-        if (!isInstalled) {
-          console.log('App not installed, showing install prompt capability');
-        }
-      });
 
       window.addEventListener('appinstalled', (evt) => {
         console.log('CheckSystem PWA foi instalado');
-        deferredPrompt = null;
       });
 
       // Check if already installed
