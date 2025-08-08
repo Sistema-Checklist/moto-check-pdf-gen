@@ -135,22 +135,38 @@ export default function SignaturePad({ onSave, onClear, label, value }: Signatur
     };
   }, []); // Executar apenas uma vez
 
-  // Restaurar assinatura se existir
+  // Restaurar assinatura se existir ou limpar quando ausente
   useEffect(() => {
-    if (value && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      if (context) {
-        const img = new Image();
-        img.onload = () => {
-          const rect = canvas.getBoundingClientRect();
-          context.clearRect(0, 0, rect.width, rect.height);
-          context.drawImage(img, 0, 0, rect.width, rect.height);
-          setHasSignature(true);
-        };
-        img.src = value;
-      }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    // Quando houver valor, desenha a assinatura salva
+    if (value) {
+      const img = new Image();
+      img.onload = () => {
+        context.clearRect(0, 0, rect.width, rect.height);
+        // Fundo branco
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, rect.width, rect.height);
+        // Desenha imagem da assinatura
+        context.drawImage(img, 0, 0, rect.width, rect.height);
+        setHasSignature(true);
+        setIsDrawing(false);
+      };
+      img.src = value;
+      return;
     }
+
+    // Quando não houver valor, limpa o canvas e restaura fundo branco
+    context.clearRect(0, 0, rect.width, rect.height);
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, rect.width, rect.height);
+    setHasSignature(false);
+    setIsDrawing(false);
   }, [value]);
 
   const handleClear = () => {

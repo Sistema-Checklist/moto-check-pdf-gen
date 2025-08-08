@@ -1221,8 +1221,26 @@ export default function Index() {
       
       // Limpar estados
       setFormState({});
+
+      // Limpar dados do cliente e da moto
+      setClientData({
+        modelo: "",
+        placa: "",
+        cor: "",
+        km: "",
+        kmAtual: "",
+        chassi: "",
+        motor: "",
+        cliente: "",
+        rg: "",
+        data: getDataAtual(),
+      });
+
+      // Limpar assinaturas
       setVistoriadorSignature("");
       setLocatarioSignature("");
+
+      // Limpar fotos
       setFotosGeraisFrontal([]);
       setFotosGeraisTraseira([]);
       setFotosGeraisLateralEsquerda([]);
