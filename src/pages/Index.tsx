@@ -1254,22 +1254,28 @@ export default function Index() {
 
         {/* Abas responsivas */}
         <nav className="bg-white rounded-xl p-2 mb-6 shadow-sm border border-violet-100">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {TABS.map(tab => (
-              <button
-                key={tab.key}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 py-3 rounded-lg font-medium transition-all duration-200 text-sm ${
-                  activeTab === tab.key 
-                    ? 'bg-violet-600 text-white shadow-md' 
-                    : 'text-gray-600 hover:bg-violet-50 hover:text-violet-700'
-                }`}
-                onClick={() => setActiveTab(tab.key)}
-                type="button"
-              >
-                {tab.icon}
-                <span className="text-xs sm:text-sm">{tab.label}</span>
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 py-3 rounded-lg font-medium transition-all duration-200 text-sm ${
+                    activeTab === tab.key 
+                      ? 'bg-violet-600 text-white shadow-md' 
+                      : 'text-gray-600 hover:bg-violet-50 hover:text-violet-700'
+                  }`}
+                  onClick={() => setActiveTab(tab.key)}
+                  type="button"
+                >
+                  {tab.icon}
+                  <span className="text-xs sm:text-sm">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <Button asChild variant="outline" size="sm" aria-label="Acessar CF Motos" className="w-full sm:w-auto">
+              <a href="https://pix-zap-cobran.lovable.app/" target="_blank" rel="noopener noreferrer">acessar CF Motos</a>
+            </Button>
           </div>
         </nav>
         
