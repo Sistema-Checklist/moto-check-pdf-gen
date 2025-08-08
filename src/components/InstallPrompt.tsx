@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Download, Smartphone, CheckCircle } from 'lucide-react';
+import { X, Download, Smartphone } from 'lucide-react';
 import { markInstallPromptDismissed, isIOS as checkIsIOS, isAndroid as checkIsAndroid } from '@/utils/pwa';
 
 interface InstallPromptProps {
@@ -12,6 +12,8 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [showIOSHelp, setShowIOSHelp] = useState(false);
+  const [showAndroidHelp, setShowAndroidHelp] = useState(false);
 
   useEffect(() => {
     // Verificar se o app já está instalado
@@ -25,20 +27,40 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
       return;
     }
 
-    // Detect platform
+    // Detectar plataforma
     setIsIOS(checkIsIOS());
     setIsAndroid(checkIsAndroid());
 
-    // Listen for beforeinstallprompt event
-    const handler = (e: any) => {
+    // Usar prompt global se já tiver sido capturado em main.tsx
+    const existing = (window as any).deferredPWAInstallPrompt;
+    if (existing) {
+      setDeferredPrompt(existing);
+    }
+
+    const onDeferredReady = () => {
+      setDeferredPrompt((window as any).deferredPWAInstallPrompt);
+    };
+
+    // Fallback: também ouvir diretamente (caso o global não esteja disponível)
+    const onBeforeInstall = (e: any) => {
       e.preventDefault();
+      (window as any).deferredPWAInstallPrompt = e;
       setDeferredPrompt(e);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    const onAppInstalled = () => {
+      try { (window as any).deferredPWAInstallPrompt = null; } catch {}
+      onClose();
+    };
+
+    window.addEventListener('lovable:deferredprompt-ready', onDeferredReady);
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('lovable:deferredprompt-ready', onDeferredReady);
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('appinstalled', onAppInstalled);
     };
   }, []);
 
@@ -50,10 +72,11 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
           console.log('User accepted the install prompt');
-          markInstallPromptDismissed();
         } else {
           console.log('User dismissed the install prompt');
         }
+        // Limpar referência global/local
+        (window as any).deferredPWAInstallPrompt = null;
         setDeferredPrompt(null);
         onClose();
       } catch (error) {
@@ -65,31 +88,13 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
   };
 
   const handleIOSInstall = () => {
-    // Show iOS-specific instructions in a better modal
-    const instructions = [
-      '1. Toque no botão Compartilhar (□↑) na barra inferior do Safari',
-      '2. Role para baixo e toque em "Adicionar à Tela Inicial"',
-      '3. Toque em "Adicionar" no canto superior direito',
-      '4. O app aparecerá na sua tela inicial como um app nativo!'
-    ];
-    
-    console.log('iOS installation instructions:', instructions);
-    markInstallPromptDismissed();
-    onClose();
+    // Mostrar instruções específicas para iOS dentro do modal
+    setShowIOSHelp(true);
   };
 
   const handleAndroidInstall = () => {
-    // Show Android-specific instructions
-    const instructions = [
-      '1. Toque no menu (⋮) no canto superior direito do Chrome',
-      '2. Toque em "Adicionar à tela inicial" ou "Instalar app"',
-      '3. Toque em "Adicionar" na caixa de confirmação',
-      '4. O app aparecerá na sua tela inicial!'
-    ];
-    
-    console.log('Android installation instructions:', instructions);
-    markInstallPromptDismissed();
-    onClose();
+    // Exibir instruções quando o prompt nativo não estiver disponível
+    setShowAndroidHelp(true);
   };
 
   const handleClose = () => {
@@ -172,6 +177,30 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
           </Button>
         </div>
 
+        {/* Ajuda contextual de instalação */}
+        {(showIOSHelp || (isIOS && !deferredPrompt)) && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/40 text-sm text-muted-foreground text-left space-y-2">
+            <p className="font-medium text-foreground">Como instalar no iPhone/iPad:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Abra no Safari.</li>
+              <li>Toque em Compartilhar (ícone quadrado com seta para cima).</li>
+              <li>Escolha “Adicionar à Tela Inicial”.</li>
+              <li>Confirme em “Adicionar”.</li>
+            </ol>
+          </div>
+        )}
+
+        {(showAndroidHelp || (isAndroid && !deferredPrompt)) && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/40 text-sm text-muted-foreground text-left space-y-2">
+            <p className="font-medium text-foreground">Como instalar no Android:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Toque no menu ⋮ do navegador.</li>
+              <li>Selecione “Instalar app” ou “Adicionar à tela inicial”.</li>
+              <li>Confirme em “Instalar/Adicionar”.</li>
+            </ol>
+          </div>
+        )}
+
         {/* Benefits */}
         <div className="mt-6 pt-4 border-t border-border">
           <div className="text-xs text-muted-foreground space-y-1">
@@ -184,4 +213,4 @@ export default function InstallPrompt({ onClose }: InstallPromptProps) {
       </div>
     </div>
   );
-} 
+}
