@@ -1,4 +1,4 @@
-const CACHE_NAME = 'checksystem-v2.0.0';
+const CACHE_NAME = 'checksystem-v2.1.0';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -15,22 +15,40 @@ const urlsToCache = [
 // Install event
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Opened cache');
+      return cache.addAll(urlsToCache);
+    }).then(() => self.skipWaiting())
   );
 });
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+
+  // Network-first para navegação/HTML para evitar versões antigas
+  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Cache-first para demais requests com atualização em background
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
+    caches.match(req).then((cached) => {
+      return cached || fetch(req).then((res) => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone)).catch(() => {});
+        return res;
+      });
+    })
   );
 });
 
@@ -46,7 +64,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
