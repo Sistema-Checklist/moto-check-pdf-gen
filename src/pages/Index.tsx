@@ -124,6 +124,8 @@ export default function Index() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const [activeTab, setActiveTab] = useState("checklist");
   const [showForm, setShowForm] = useState(false);
   const [locatarios, setLocatarios] = useState<UILocatario[]>([]);
@@ -194,6 +196,42 @@ export default function Index() {
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Verificar permissões de admin via RPC segura, evitando piscar
+  useEffect(() => {
+    let active = true;
+
+    const checkAdmin = async () => {
+      setIsCheckingAdmin(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (active) {
+          setIsAdmin(false);
+          setIsCheckingAdmin(false);
+        }
+        return;
+      }
+      const { data, error } = await supabase.rpc('is_admin');
+      if (active) {
+        setIsAdmin(Boolean(data) && !error);
+        setIsCheckingAdmin(false);
+      }
+    };
+
+    checkAdmin();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Evitar chamadas diretas dentro do callback
+      setTimeout(() => {
+        checkAdmin();
+      }, 0);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Definir data atual sempre que o componente for montado
@@ -1235,7 +1273,7 @@ export default function Index() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-4">
             <span className="text-sm text-gray-600 hidden sm:block">Bem-Vindo {userProfile?.company_name || 'CheckSystem'}</span>
             <div className="flex gap-2">
-              {user?.email === 'kauankg@hotmail.com' && (
+              {!isCheckingAdmin && isAdmin && (
                 <Button variant="outline" onClick={() => navigate('/admin')} size="sm" className="text-xs">
                   Admin
                 </Button>
